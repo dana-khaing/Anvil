@@ -8,9 +8,10 @@ to the cloud when you're back online.
 
 ## Status
 
-🚧 Early build. Day 1 of a day-by-day build: repository scaffold only — no
-app features yet. See [`DIARY.md`](./DIARY.md) for a running log of what's
-been built and why.
+🚧 Early build. Day 2 of a day-by-day build: repo scaffold, design tokens,
+base UI kit, and a 5-tab navigation shell (Today / Routines / Progress /
+Chat / Profile) with placeholder screens — no real features yet. See
+[`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
 
 ## Planned features
 
