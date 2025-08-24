@@ -1,6 +1,12 @@
 import { BlurView } from 'expo-blur';
+import { cssInterop } from 'nativewind';
 import { type ReactNode } from 'react';
 import { Platform, View, type ViewProps } from 'react-native';
+
+// BlurView is a third-party native component — NativeWind only auto-patches
+// core React Native primitives, so className support has to be registered
+// explicitly or its classes silently no-op.
+cssInterop(BlurView, { className: 'style' });
 
 export type GlassPanelProps = ViewProps & {
   children: ReactNode;

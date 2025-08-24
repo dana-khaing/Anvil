@@ -28,36 +28,40 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       pointerEvents="box-none"
       className="absolute inset-x-4 items-center"
       style={{ bottom: insets.bottom + 12 }}>
-      <GlassPanel className="flex-row gap-1 p-2">
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
-          const icons = TAB_ICONS[route.name] ?? TAB_ICONS.index;
+      <GlassPanel className="p-2">
+        {/* Row layout lives on a plain View: NativeWind doesn't reliably
+            patch className on third-party native components like BlurView. */}
+        <View className="flex-row gap-1">
+          {state.routes.map((route, index) => {
+            const { options } = descriptors[route.key];
+            const isFocused = state.index === index;
+            const icons = TAB_ICONS[route.name] ?? TAB_ICONS.index;
 
-          return (
-            <TabBarButton
-              key={route.key}
-              label={String(options.title ?? route.name)}
-              iconName={isFocused ? icons.active : icons.inactive}
-              isFocused={isFocused}
-              onPress={() => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
+            return (
+              <TabBarButton
+                key={route.key}
+                label={String(options.title ?? route.name)}
+                iconName={isFocused ? icons.active : icons.inactive}
+                isFocused={isFocused}
+                onPress={() => {
+                  const event = navigation.emit({
+                    type: 'tabPress',
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
 
-                if (Platform.OS !== 'web') {
-                  Haptics.selectionAsync();
-                }
+                  if (Platform.OS !== 'web') {
+                    Haptics.selectionAsync();
+                  }
 
-                if (!isFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              }}
-            />
-          );
-        })}
+                  if (!isFocused && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                }}
+              />
+            );
+          })}
+        </View>
       </GlassPanel>
     </View>
   );
