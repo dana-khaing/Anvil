@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["unrs-resolver", "@shopify/react-native-skia"]
+    "onlyBuiltDependencies": ["unrs-resolver", "@shopify/react-native-skia", "esbuild"]
   },
   "scripts": {
     "typecheck": "pnpm --filter @pulseforge/app exec tsc --noEmit",
