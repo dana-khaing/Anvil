@@ -103,3 +103,33 @@ history rewriting (resets, cherry-picks) earlier in the build, not a real
 regression. `watchman watch-del-all` + `expo start --clear` fixed it
 immediately. Worth trying that first if styling looks broken for no reason
 after a native rebuild.
+
+## 2025-08-31 — Onboarding flow
+
+Built a 5-step wizard (welcome → height/weight → goal → split → review) as
+a single screen with local step state rather than one route per step —
+there's no reason to navigate away and lose back-button history for what's
+fundamentally one linear form. Finishing either inserts a `profiles` row and
+generates a routine from the chosen split template (`createRoutineFromTemplate`
+in `db/routines.ts`, reusing the Day 3 seed templates), or — for "I'll build
+my own routine" — inserts a bare profile with no routine, landing on an
+empty Routines tab that Day 5's manual builder will fill in.
+
+Routing the gate itself was the interesting part: used `Stack.Protected`
+(new-ish Expo Router API, `<Stack.Protected guard={...}>`) to show either
+the tab shell or `/onboarding` depending on whether a profile row exists,
+checked once in the root layout alongside the migration/seed gate. Cleaner
+than a manual `<Redirect>` — it also handles redirecting away if the guard
+flips while a protected route is already active.
+
+Couldn't tap through the flow interactively on the simulator — no
+Accessibility/automation permissions available in this environment for
+`osascript`, and `idb` isn't installed. Visually confirmed the welcome step
+renders correctly, then wrote a real component test
+(`onboarding/index.test.tsx`) that drives the entire wizard via
+`fireEvent.press`/`changeText` end to end, including the disabled-Continue
+validation and both the "create a routine" and "skip" exit paths — stronger
+coverage than a manual tap-through would have given anyway, and it stays
+useful as a regression check going forward. Learned `fireEvent.press` is
+async in this Testing Library version, same as `render` (Day 1) — needs
+`await` or the next assertion runs before the state update lands.
