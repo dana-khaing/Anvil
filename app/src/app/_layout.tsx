@@ -9,6 +9,7 @@ import '@/global.css';
 import { AnimatedSplashOverlay } from '@/components/splash-overlay';
 import { db } from '@/db/client';
 import { seedExerciseLibrary } from '@/db/seed';
+import { useProfileStore } from '@/stores/profile-store';
 import migrations from '../../drizzle/migrations';
 
 SplashScreen.preventAutoHideAsync();
@@ -16,11 +17,17 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
   const [seeded, setSeeded] = useState(false);
+  const profile = useProfileStore((state) => state.profile);
+  const profileChecked = useProfileStore((state) => state.checked);
+  const loadProfile = useProfileStore((state) => state.load);
 
   useEffect(() => {
     if (!success) return;
-    seedExerciseLibrary(db).then(() => setSeeded(true));
-  }, [success]);
+    seedExerciseLibrary(db).then(() => {
+      setSeeded(true);
+      loadProfile();
+    });
+  }, [success, loadProfile]);
 
   if (error) {
     return (
@@ -30,12 +37,21 @@ export default function RootLayout() {
     );
   }
 
+  const ready = success && seeded && profileChecked;
+
   return (
     <ThemeProvider value={DarkTheme}>
-      <AnimatedSplashOverlay ready={success && seeded} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      <AnimatedSplashOverlay ready={ready} />
+      {ready && (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={profile !== null}>
+            <Stack.Screen name="(tabs)" />
+          </Stack.Protected>
+          <Stack.Protected guard={profile === null}>
+            <Stack.Screen name="onboarding" />
+          </Stack.Protected>
+        </Stack>
+      )}
     </ThemeProvider>
   );
 }
