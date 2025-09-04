@@ -133,3 +133,43 @@ coverage than a manual tap-through would have given anyway, and it stays
 useful as a regression check going forward. Learned `fireEvent.press` is
 async in this Testing Library version, same as `render` (Day 1) — needs
 `await` or the next assertion runs before the state update lands.
+
+## 2025-09-04 — Manual routine builder
+
+Built out the real Routines tab: a list of the active routine's days, a day
+detail screen (exercises with weight/reps/sets, tap to edit, X to remove),
+and an exercise-form screen that's a searchable picker from the seeded
+library when adding, or a pre-filled edit form when tapping an existing
+entry — the same screen handles both, keyed off whether an `entryId` param
+is present. `routines-store.ts` (Zustand) owns the CRUD, following the Day 3
+explicit-reload-after-mutation pattern; every mutation just calls `load()`
+again rather than trying to patch state in place, which is simple enough at
+this data size not to be worth optimizing away.
+
+Hit a real Metro bundling bug getting here: Expo Router's file-based routing
+uses a `require.context` over the whole `app/` directory to discover routes,
+and it has no built-in exclusion for `.test.tsx` files — so the Day 4
+`onboarding/index.test.tsx`, co-located next to the screen it tested, was
+getting eagerly bundled into the actual app bundle and pulling in
+`@testing-library/react-native`, which broke bundling entirely. Moved it to
+`src/__tests__/onboarding-screen.test.tsx` (importing the screen via the
+`@/` alias) — outside the router's scan root. Established this as the
+convention going forward: test files for anything under `src/app/` live in
+`src/__tests__/`, not co-located; component tests for things outside
+`src/app/` (like `src/components/ui/button.test.tsx`) can stay co-located
+since Metro's route scanner never sees them.
+
+Verification was more limited than I'd like: confirmed the app boots into
+the tab shell correctly (inserted a `profiles` row directly into the
+simulator's SQLite file via `sqlite3` to get past the onboarding gate
+without being able to tap through it), and confirmed via `pnpm typecheck`
+that every route reference (`router.push('/routines/exercise-form')` etc.)
+resolves against Expo Router's generated typed routes. Tried deep-linking
+straight to `/routines` as a workaround for not being able to tap
+(`xcrun simctl openurl`), but iOS shows an "Open in PulseForge?"
+confirmation dialog for externally-triggered scheme opens that I can't
+dismiss without a tap either — so the CRUD screens themselves are verified
+by code review and typechecking, not a live run. Worth deliberately setting
+up simulator UI automation (or Maestro, already planned for Day 7+ E2E)
+before Day 6, since the Today/workout-session flow is exactly the kind of
+interactive, multi-step screen that most needs a real tap-through.
