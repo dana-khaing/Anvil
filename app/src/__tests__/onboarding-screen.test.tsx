@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { db } from '@/db/client';
 import { createRoutineFromTemplate } from '@/db/routines';
 
-import OnboardingScreen from './index';
+import OnboardingScreen from '@/app/onboarding/index';
 
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn() },
