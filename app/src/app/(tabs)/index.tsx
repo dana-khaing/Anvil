@@ -1,10 +1,137 @@
-import { ScreenPlaceholder } from '@/components/screen-placeholder';
+import { router } from 'expo-router';
+import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ProgressRing } from '@/components/ui/progress-ring';
+import { useRoutinesStore } from '@/stores/routines-store';
+import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 
 export default function TodayScreen() {
+  const days = useRoutinesStore((state) => state.days);
+  const routinesLoaded = useRoutinesStore((state) => state.loaded);
+  const loadRoutines = useRoutinesStore((state) => state.load);
+
+  const today = useWorkoutSessionStore((state) => state.today);
+  const session = useWorkoutSessionStore((state) => state.session);
+  const completedExerciseIds = useWorkoutSessionStore((state) => state.completedExerciseIds);
+  const sessionLoaded = useWorkoutSessionStore((state) => state.loaded);
+  const loadSession = useWorkoutSessionStore((state) => state.load);
+  const startSession = useWorkoutSessionStore((state) => state.startSession);
+  const finishExercise = useWorkoutSessionStore((state) => state.finishExercise);
+
+  useEffect(() => {
+    loadRoutines();
+  }, [loadRoutines]);
+
+  useEffect(() => {
+    if (routinesLoaded) loadSession(days);
+    // days is intentionally omitted: re-run only when routinesLoaded flips, not on every
+    // `days` array identity change, since load() re-derives from the current closure value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routinesLoaded, loadSession]);
+
+  if (!routinesLoaded || !sessionLoaded) {
+    return <SafeAreaView className="flex-1 bg-background" />;
+  }
+
+  if (!today) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 justify-center px-6 pb-32">
+          <Text className="mb-3 text-4xl font-semibold text-ink">Today</Text>
+          <Card>
+            <Text className="mb-3 text-ink-muted">
+              You don&apos;t have a routine yet. Add a day in the Routines tab to get started.
+            </Text>
+            <Button onPress={() => router.push('/routines')}>Go to Routines</Button>
+          </Card>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const total = today.exercises.length;
+  const completedCount = completedExerciseIds.size;
+  const progress = total === 0 ? 0 : completedCount / total;
+  const currentExercise = today.exercises.find((exercise) => !completedExerciseIds.has(exercise.id));
+  const isComplete = session?.status === 'completed';
+
   return (
-    <ScreenPlaceholder
-      title="Today"
-      description="Your current workout session lands here — exercise cards, sets, and a Finished action that advances you through the day."
-    />
+    <SafeAreaView className="flex-1 bg-background">
+      <View className="flex-1 px-6 pb-32">
+        <View className="flex-row items-center justify-between pt-2">
+          <View className="flex-1 pr-4">
+            <Text className="text-4xl font-semibold text-ink">{today.label}</Text>
+            <Text className="mt-1 text-ink-muted">
+              {completedCount}/{total} exercises
+            </Text>
+          </View>
+          <ProgressRing progress={progress} size={64} strokeWidth={7} />
+        </View>
+
+        <View className="flex-1 justify-center">
+          {total === 0 && (
+            <Card>
+              <Text className="text-ink-muted">
+                This day has no exercises yet — add some from the Routines tab.
+              </Text>
+            </Card>
+          )}
+
+          {total > 0 && !session && (
+            <Card className="gap-3">
+              <Text className="text-ink-muted">
+                Ready for {today.label}? {total} exercise{total === 1 ? '' : 's'} today.
+              </Text>
+              <Button onPress={startSession}>Start Workout</Button>
+            </Card>
+          )}
+
+          {session && isComplete && (
+            <Card>
+              <Text className="mb-1 text-xl font-semibold text-ink">Workout complete 🎉</Text>
+              <Text className="text-ink-muted">Nice work. See you next time.</Text>
+            </Card>
+          )}
+
+          {session && !isComplete && currentExercise && (
+            <Card className="gap-4">
+              <View>
+                <Text className="text-xs uppercase tracking-wide text-ink-faint">
+                  Exercise {completedCount + 1} of {total}
+                </Text>
+                <Text className="mt-1 text-2xl font-semibold text-ink">
+                  {currentExercise.exercise.name}
+                </Text>
+              </View>
+              <View className="flex-row gap-6">
+                <Stat
+                  label="Weight"
+                  value={currentExercise.targetWeightKg ? `${currentExercise.targetWeightKg}kg` : 'Body'}
+                />
+                <Stat
+                  label="Reps"
+                  value={`${currentExercise.targetRepsMin ?? '-'}-${currentExercise.targetRepsMax ?? '-'}`}
+                />
+                <Stat label="Sets" value={String(currentExercise.targetSets)} />
+              </View>
+              <Button onPress={() => finishExercise(currentExercise.id)}>Finished</Button>
+            </Card>
+          )}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <View>
+      <Text className="text-xs text-ink-faint">{label}</Text>
+      <Text className="mt-0.5 text-base font-semibold text-ink">{value}</Text>
+    </View>
   );
 }
