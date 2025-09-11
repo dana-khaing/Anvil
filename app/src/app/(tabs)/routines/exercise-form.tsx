@@ -4,6 +4,7 @@ import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useRoutinesStore } from '@/stores/routines-store';
@@ -47,10 +48,10 @@ export default function ExerciseFormScreen() {
     try {
       const input = {
         exerciseId,
-        targetWeightKg: weight ? Number(weight) : null,
-        targetRepsMin: repsMin ? Number(repsMin) : null,
-        targetRepsMax: repsMax ? Number(repsMax) : null,
-        targetSets: sets ? Number(sets) : 3,
+        targetWeightKg: parseOptionalNumber(weight),
+        targetRepsMin: parseOptionalNumber(repsMin),
+        targetRepsMax: parseOptionalNumber(repsMax),
+        targetSets: parseOptionalNumber(sets) ?? 3,
         videoUrl: videoUrl.trim() || null,
       };
 
@@ -91,6 +92,11 @@ export default function ExerciseFormScreen() {
                 </Text>
               </Pressable>
             )}
+            ListEmptyComponent={
+              <Text className="text-ink-muted">
+                {search.trim() ? `No exercises match "${search.trim()}".` : 'No exercises found.'}
+              </Text>
+            }
           />
         </View>
       </SafeAreaView>
@@ -105,18 +111,18 @@ export default function ExerciseFormScreen() {
         <View className="gap-4">
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <FormField label="Weight (kg)" value={weight} onChangeText={setWeight} />
+              <NumberField label="Weight (kg)" value={weight} onChangeText={setWeight} />
             </View>
             <View className="flex-1">
-              <FormField label="Sets" value={sets} onChangeText={setSets} />
+              <NumberField label="Sets" value={sets} onChangeText={setSets} />
             </View>
           </View>
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <FormField label="Reps min" value={repsMin} onChangeText={setRepsMin} />
+              <NumberField label="Reps min" value={repsMin} onChangeText={setRepsMin} />
             </View>
             <View className="flex-1">
-              <FormField label="Reps max" value={repsMax} onChangeText={setRepsMax} />
+              <NumberField label="Reps max" value={repsMax} onChangeText={setRepsMax} />
             </View>
           </View>
           <View>
@@ -147,29 +153,5 @@ export default function ExerciseFormScreen() {
         </View>
       </View>
     </SafeAreaView>
-  );
-}
-
-function FormField({
-  label,
-  value,
-  onChangeText,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-}) {
-  return (
-    <View>
-      <Text className="mb-1.5 text-sm text-ink-muted">{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={(text) => onChangeText(text.replace(/[^0-9.]/g, ''))}
-        keyboardType="numeric"
-        placeholder="0"
-        placeholderTextColor="#5B6178"
-        className="rounded-xl border border-border bg-surface-raised px-4 py-3.5 text-base text-ink"
-      />
-    </View>
   );
 }
