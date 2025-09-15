@@ -265,3 +265,32 @@ suite (26 passing across 6 suites after this pass, up from 12), and an app
 boot/smoke check on the simulator to confirm nothing broke — no full
 tap-through needed since every change here was either covered by a new unit
 test or was a pure removal/rename with no behavior change.
+
+## 2025-09-15 — Exercise substitution
+
+Added a "Swap" action next to "Finished" on the Today screen's current
+exercise, opening an equipment-filterable list of alternates sourced from
+`alternativesFor` (hardened just in time, Day 7). Swapping is scoped to the
+current session only — it doesn't edit the routine, since the point is
+"the machine isn't free right now," not "I want to change my plan."
+
+The rep/set adjustment is deterministic, documented rules, not a guess —
+matches the plan's explicit requirement that this work offline:
+`adjustForSubstitution` (unit tested, 5 cases) keeps reps/sets/weight
+unchanged between any two weighted equipment types (barbell/dumbbell/
+machine/cable all carry over — the weight is a starting estimate, not a
+recalculated conversion, since there's no reliable ratio between e.g.
+barbell and dumbbell bench numbers), bumps reps ~50% and clears weight when
+swapping *to* bodyweight (no external load to compensate for), and reverts
+to a standard 8-12 rep range when swapping *off* bodyweight back to
+something weighted. `finishExercise` now records which exercise variant was
+actually used via `set_logs.substituted_exercise_id` — already in the Day 3
+schema, unused until now.
+
+Couldn't tap through the picker interactively (same simulator-automation
+gap as prior days), but `SubstitutionPicker` takes its data as plain
+props — no store or DB involved — so it got direct component tests instead
+of a store-mocking workaround: default list, equipment-filter narrowing, the
+empty-filter-result message, `onSelect`/`onCancel` firing correctly. Visually
+confirmed the Today screen's new Swap/Finished button row renders correctly
+on the simulator. 36 tests passing across 7 suites, up from 26.
