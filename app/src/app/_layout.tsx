@@ -9,6 +9,7 @@ import '@/global.css';
 import { AnimatedSplashOverlay } from '@/components/splash-overlay';
 import { db } from '@/db/client';
 import { seedExerciseLibrary } from '@/db/seed';
+import { useAuthStore } from '@/stores/auth-store';
 import { useProfileStore } from '@/stores/profile-store';
 import migrations from '../../drizzle/migrations';
 
@@ -20,6 +21,8 @@ export default function RootLayout() {
   const profile = useProfileStore((state) => state.profile);
   const profileChecked = useProfileStore((state) => state.checked);
   const loadProfile = useProfileStore((state) => state.load);
+  const authChecked = useAuthStore((state) => state.checked);
+  const initAuth = useAuthStore((state) => state.init);
 
   useEffect(() => {
     if (!success) return;
@@ -27,7 +30,8 @@ export default function RootLayout() {
       setSeeded(true);
       loadProfile();
     });
-  }, [success, loadProfile]);
+    initAuth();
+  }, [success, loadProfile, initAuth]);
 
   if (error) {
     return (
@@ -37,7 +41,7 @@ export default function RootLayout() {
     );
   }
 
-  const ready = success && seeded && profileChecked;
+  const ready = success && seeded && profileChecked && authChecked;
 
   return (
     <ThemeProvider value={DarkTheme}>
