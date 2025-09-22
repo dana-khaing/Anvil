@@ -3,12 +3,15 @@ import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const profiles = sqliteTable('profiles', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  /** Stable id shared with the Supabase row once synced (Day 10). Null until first sync. */
+  remoteId: text('remote_id').unique(),
   heightCm: real('height_cm'),
   weightKg: real('weight_kg'),
   goal: text('goal', { enum: ['build_muscle', 'lose_fat', 'maintain', 'strength'] }),
   notificationsEnabled: integer('notifications_enabled', { mode: 'boolean' }).notNull().default(false),
   lastActiveAt: text('last_active_at'),
   createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 
 /** Static exercise catalog, seeded at install time — not user-editable content. */
@@ -26,27 +29,32 @@ export const exercises = sqliteTable('exercises', {
 
 export const routines = sqliteTable('routines', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  remoteId: text('remote_id').unique(),
   name: text('name').notNull(),
   splitType: text('split_type', {
     enum: ['push_pull_legs', 'upper_lower', 'bro_split', 'custom'],
   }).notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 
 /** A single training day within a routine, e.g. "D1 - Chest and Tricep". */
 export const routineDays = sqliteTable('routine_days', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  remoteId: text('remote_id').unique(),
   routineId: integer('routine_id')
     .notNull()
     .references(() => routines.id, { onDelete: 'cascade' }),
   label: text('label').notNull(),
   dayOrder: integer('day_order').notNull(),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 
 /** An exercise placed on a routine day, with the user's target weight/reps/sets. */
 export const routineExercises = sqliteTable('routine_exercises', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  remoteId: text('remote_id').unique(),
   routineDayId: integer('routine_day_id')
     .notNull()
     .references(() => routineDays.id, { onDelete: 'cascade' }),
@@ -61,10 +69,12 @@ export const routineExercises = sqliteTable('routine_exercises', {
   /** Overrides the exercise's default video, e.g. a user-pasted YouTube link. */
   videoUrl: text('video_url'),
   notes: text('notes'),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 
 export const workoutSessions = sqliteTable('workout_sessions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  remoteId: text('remote_id').unique(),
   routineDayId: integer('routine_day_id')
     .notNull()
     .references(() => routineDays.id),
@@ -73,10 +83,12 @@ export const workoutSessions = sqliteTable('workout_sessions', {
     .default('in_progress'),
   startedAt: text('started_at').notNull().default(sql`(current_timestamp)`),
   finishedAt: text('finished_at'),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 
 export const setLogs = sqliteTable('set_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  remoteId: text('remote_id').unique(),
   sessionId: integer('session_id')
     .notNull()
     .references(() => workoutSessions.id, { onDelete: 'cascade' }),
