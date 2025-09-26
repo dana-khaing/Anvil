@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { db } from '@/db/client';
 import { type Equipment } from '@/db/seed-data/exercises';
 import { setLogs, workoutSessions } from '@/db/schema';
+import { useProgressStore } from '@/stores/progress-store';
 import { type DayWithExercises, type Exercise } from '@/stores/routines-store';
 
 export type WorkoutSession = typeof workoutSessions.$inferSelect;
@@ -197,11 +198,13 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     set({ completedExerciseIds: nextCompleted, substitution: null });
 
     if (nextCompleted.size >= today.exercises.length) {
+      const finishedAt = new Date().toISOString();
       await db
         .update(workoutSessions)
-        .set({ status: 'completed', finishedAt: new Date().toISOString() })
+        .set({ status: 'completed', finishedAt })
         .where(eq(workoutSessions.id, session.id));
-      set({ session: { ...session, status: 'completed', finishedAt: new Date().toISOString() } });
+      set({ session: { ...session, status: 'completed', finishedAt } });
+      await useProgressStore.getState().recordWorkoutCompletion(finishedAt);
     }
   },
 }));
