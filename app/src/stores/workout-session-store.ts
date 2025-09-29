@@ -4,7 +4,8 @@ import { create } from 'zustand';
 import { db } from '@/db/client';
 import { type Equipment } from '@/db/seed-data/exercises';
 import { setLogs, workoutSessions } from '@/db/schema';
-import { useProgressStore } from '@/stores/progress-store';
+import { useNotificationsStore } from '@/stores/notifications-store';
+import { toCalendarDate, useProgressStore } from '@/stores/progress-store';
 import { type DayWithExercises, type Exercise } from '@/stores/routines-store';
 
 export type WorkoutSession = typeof workoutSessions.$inferSelect;
@@ -205,6 +206,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         .where(eq(workoutSessions.id, session.id));
       set({ session: { ...session, status: 'completed', finishedAt } });
       await useProgressStore.getState().recordWorkoutCompletion(finishedAt);
+      await useNotificationsStore.getState().rescheduleReengagement(toCalendarDate(finishedAt));
     }
   },
 }));
