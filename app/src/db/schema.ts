@@ -117,3 +117,11 @@ export const goals = sqliteTable('goals', {
   startDate: text('start_date').notNull(),
   endDate: text('end_date'),
 });
+
+/** Local-only chat history with the AI coach — not part of cloud sync. */
+export const chatMessages = sqliteTable('chat_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  role: text('role', { enum: ['user', 'assistant'] }).notNull(),
+  content: text('content').notNull(),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+});
