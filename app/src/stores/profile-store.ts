@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { db } from '@/db/client';
+import { getLocalProfile } from '@/db/profile';
 import { profiles } from '@/db/schema';
 
 export type Profile = typeof profiles.$inferSelect;
@@ -16,7 +16,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
   profile: null,
   checked: false,
   load: async () => {
-    const rows = await db.select().from(profiles).limit(1);
-    set({ profile: rows[0] ?? null, checked: true });
+    const profile = await getLocalProfile();
+    set({ profile, checked: true });
   },
 }));

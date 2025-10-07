@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
+import { getLocalProfile } from '@/db/profile';
 import { profiles } from '@/db/schema';
 
 Notifications.setNotificationHandler({
@@ -98,7 +99,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   loaded: false,
 
   load: async () => {
-    const [profile] = await db.select().from(profiles).limit(1);
+    const profile = await getLocalProfile();
     const { status } = await Notifications.getPermissionsAsync();
     set({ enabled: (profile?.notificationsEnabled ?? false) && status === 'granted', permissionStatus: status, loaded: true });
   },
@@ -110,7 +111,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       return false;
     }
 
-    const [profile] = await db.select().from(profiles).limit(1);
+    const profile = await getLocalProfile();
     if (profile) {
       await db
         .update(profiles)
@@ -124,7 +125,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   disable: async () => {
     await Notifications.cancelAllScheduledNotificationsAsync();
-    const [profile] = await db.select().from(profiles).limit(1);
+    const profile = await getLocalProfile();
     if (profile) {
       await db
         .update(profiles)

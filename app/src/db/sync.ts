@@ -1,6 +1,7 @@
 import { eq, isNull } from 'drizzle-orm';
 
 import { db } from './client';
+import { getLocalProfile } from './profile';
 import { profiles, routineDays, routineExercises, routines, setLogs, workoutSessions } from './schema';
 import { supabase } from './supabase-client';
 
@@ -20,7 +21,7 @@ export async function syncWithSupabase(userId: string): Promise<void> {
 
 async function pushLocalChanges(userId: string): Promise<void> {
   // Profile: one row per user, upserted by user_id.
-  const [profile] = await db.select().from(profiles).limit(1);
+  const profile = await getLocalProfile();
   if (profile) {
     const { data } = await supabase
       .from('profiles')
