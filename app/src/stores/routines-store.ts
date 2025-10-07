@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
@@ -111,7 +111,10 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   },
 
   updateExercise: async (id, input) => {
-    await db.update(routineExercises).set(input).where(eq(routineExercises.id, id));
+    await db
+      .update(routineExercises)
+      .set({ ...input, updatedAt: sql`(current_timestamp)` })
+      .where(eq(routineExercises.id, id));
     await get().load();
   },
 

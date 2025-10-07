@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import * as Notifications from 'expo-notifications';
 import { create } from 'zustand';
 
@@ -112,7 +112,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     const [profile] = await db.select().from(profiles).limit(1);
     if (profile) {
-      await db.update(profiles).set({ notificationsEnabled: true }).where(eq(profiles.id, profile.id));
+      await db
+        .update(profiles)
+        .set({ notificationsEnabled: true, updatedAt: sql`(current_timestamp)` })
+        .where(eq(profiles.id, profile.id));
     }
     await scheduleDailyReminders();
     set({ enabled: true, permissionStatus: status });
@@ -123,7 +126,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     await Notifications.cancelAllScheduledNotificationsAsync();
     const [profile] = await db.select().from(profiles).limit(1);
     if (profile) {
-      await db.update(profiles).set({ notificationsEnabled: false }).where(eq(profiles.id, profile.id));
+      await db
+        .update(profiles)
+        .set({ notificationsEnabled: false, updatedAt: sql`(current_timestamp)` })
+        .where(eq(profiles.id, profile.id));
     }
     set({ enabled: false });
   },

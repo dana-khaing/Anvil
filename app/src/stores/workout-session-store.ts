@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
@@ -202,7 +202,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       const finishedAt = new Date().toISOString();
       await db
         .update(workoutSessions)
-        .set({ status: 'completed', finishedAt })
+        .set({ status: 'completed', finishedAt, updatedAt: sql`(current_timestamp)` })
         .where(eq(workoutSessions.id, session.id));
       set({ session: { ...session, status: 'completed', finishedAt } });
       await useProgressStore.getState().recordWorkoutCompletion(finishedAt);
