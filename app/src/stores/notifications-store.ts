@@ -137,6 +137,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   rescheduleReengagement: async (lastWorkoutDate) => {
     if (!get().enabled) return;
 
+    // Best-effort: this runs right after a workout is already recorded as
+    // completed (see workout-session-store's finishExercise), so a native
+    // scheduling hiccup here must never surface as a rejected promise on
+    // top of an already-successful completion.
     await Notifications.cancelScheduledNotificationAsync(REENGAGEMENT_ID).catch(() => {});
     await Notifications.scheduleNotificationAsync({
       identifier: REENGAGEMENT_ID,
@@ -148,6 +152,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: reengagementFireDate(lastWorkoutDate, REENGAGEMENT_INACTIVITY_DAYS, REENGAGEMENT_HOUR),
       },
-    });
+    }).catch(() => {});
   },
 }));
