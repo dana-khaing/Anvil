@@ -106,7 +106,8 @@ async function loadStreakRow() {
   return created;
 }
 
-async function completedSessionDates(): Promise<string[]> {
+/** Local calendar dates of every completed session, for anything that needs a completion history (e.g. Day 15's streak calendar). */
+export async function completedSessionDates(): Promise<string[]> {
   const rows = await db
     .select({ finishedAt: workoutSessions.finishedAt })
     .from(workoutSessions)
