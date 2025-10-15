@@ -89,7 +89,7 @@ export default function RoutineDayScreen() {
                 accessibilityLabel={`Remove ${item.exercise.name}`}
                 hitSlop={12}
                 onPress={() => deleteExercise(item.id)}>
-                <Ionicons name="close-circle-outline" size={22} color="#5B6178" />
+                <Ionicons name="close-circle-outline" size={22} color="#7A8099" />
               </Pressable>
             </Pressable>
           )}

@@ -77,7 +77,7 @@ export default function RoutinesScreen() {
               value={newDayLabel}
               onChangeText={setNewDayLabel}
               placeholder="e.g. D1 - Chest and Tricep"
-              placeholderTextColor="#5B6178"
+              placeholderTextColor="#7A8099"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"
             />
             <View className="flex-row gap-3">

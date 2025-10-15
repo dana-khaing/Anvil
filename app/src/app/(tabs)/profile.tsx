@@ -133,7 +133,7 @@ export default function ProfileScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="Email"
-              placeholderTextColor="#5B6178"
+              placeholderTextColor="#7A8099"
               autoCapitalize="none"
               keyboardType="email-address"
               accessibilityLabel="Email"
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder="Password"
-              placeholderTextColor="#5B6178"
+              placeholderTextColor="#7A8099"
               secureTextEntry
               accessibilityLabel="Password"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"

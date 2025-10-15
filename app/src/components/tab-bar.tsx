@@ -90,7 +90,7 @@ function TabBarButton({ label, iconName, isFocused, onPress }: TabBarButtonProps
       <Animated.View
         className={`items-center justify-center rounded-xl px-3 py-1.5 ${isFocused ? 'bg-pulse-500/20' : ''}`}
         style={animatedStyle}>
-        <Ionicons name={iconName} size={22} color={isFocused ? '#9C82FF' : '#5B6178'} />
+        <Ionicons name={iconName} size={22} color={isFocused ? '#9C82FF' : '#7A8099'} />
       </Animated.View>
     </Pressable>
   );

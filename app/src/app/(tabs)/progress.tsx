@@ -53,7 +53,7 @@ export default function ProgressScreen() {
             <Ionicons
               name={streak.currentStreak > 0 ? 'flame' : 'flame-outline'}
               size={28}
-              color={streak.currentStreak > 0 ? '#FF7A1A' : '#5B6178'}
+              color={streak.currentStreak > 0 ? '#FF7A1A' : '#7A8099'}
             />
           </View>
           <View className="flex-1">
@@ -121,7 +121,7 @@ export default function ProgressScreen() {
                 <Ionicons
                   name={badge.earned ? 'ribbon' : 'lock-closed-outline'}
                   size={20}
-                  color={badge.earned ? '#9C82FF' : '#5B6178'}
+                  color={badge.earned ? '#9C82FF' : '#7A8099'}
                 />
                 <Text className={`text-sm font-semibold ${badge.earned ? 'text-ink' : 'text-ink-faint'}`}>
                   {badge.label}

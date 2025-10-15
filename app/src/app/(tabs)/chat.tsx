@@ -68,7 +68,7 @@ export default function ChatScreen() {
             value={draft}
             onChangeText={setDraft}
             placeholder="Ask your coach..."
-            placeholderTextColor="#5B6178"
+            placeholderTextColor="#7A8099"
             multiline
             accessibilityLabel="Message"
             className="max-h-28 flex-1 rounded-xl border border-border bg-surface-raised px-4 py-3 text-base text-ink"

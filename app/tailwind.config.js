@@ -11,7 +11,10 @@ module.exports = {
         border: 'rgba(255,255,255,0.08)',
         ink: '#F4F5FA',
         'ink-muted': '#9AA1B8',
-        'ink-faint': '#5B6178',
+        // #5B6178 measured ~3.3:1 against `background` -- fails WCAG AA (4.5:1)
+        // for the small/uppercase text it's used for everywhere. #7A8099 keeps
+        // the same blue-gray hue but measures ~5.2:1.
+        'ink-faint': '#7A8099',
         pulse: {
           400: '#9C82FF',
           500: '#7C5CFF',

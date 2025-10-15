@@ -75,7 +75,7 @@ export default function ExerciseFormScreen() {
             value={search}
             onChangeText={setSearch}
             placeholder="Search exercises"
-            placeholderTextColor="#5B6178"
+            placeholderTextColor="#7A8099"
             className="mb-3 rounded-xl border border-border bg-surface-raised px-4 py-3 text-base text-ink"
           />
           <FlatList
@@ -131,7 +131,7 @@ export default function ExerciseFormScreen() {
               value={videoUrl}
               onChangeText={setVideoUrl}
               placeholder="https://youtube.com/..."
-              placeholderTextColor="#5B6178"
+              placeholderTextColor="#7A8099"
               autoCapitalize="none"
               keyboardType="url"
               className="rounded-xl border border-border bg-surface-raised px-4 py-3.5 text-base text-ink"
