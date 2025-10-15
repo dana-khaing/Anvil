@@ -49,7 +49,7 @@ export default function RoutinesScreen() {
           keyExtractor={(day) => String(day.id)}
           contentContainerStyle={{ gap: 12 }}
           renderItem={({ item: day }) => (
-            <Pressable onPress={() => router.push(`/routines/${day.id}`)}>
+            <Pressable accessibilityRole="button" onPress={() => router.push(`/routines/${day.id}`)}>
               <Card>
                 <Text className="text-lg font-semibold text-ink">{day.label}</Text>
                 <Text className="mt-1 text-sm text-ink-muted">
@@ -61,6 +61,7 @@ export default function RoutinesScreen() {
           ListFooterComponent={
             days.length > 0 && !addingDay ? (
               <Pressable
+                accessibilityRole="button"
                 onPress={() => setAddingDay(true)}
                 className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4">
                 <Ionicons name="add" size={18} color="#9AA1B8" />
@@ -78,6 +79,7 @@ export default function RoutinesScreen() {
               onChangeText={setNewDayLabel}
               placeholder="e.g. D1 - Chest and Tricep"
               placeholderTextColor="#7A8099"
+              accessibilityLabel="Day name"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"
             />
             <View className="flex-row gap-3">

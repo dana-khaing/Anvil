@@ -48,7 +48,7 @@ export default function RoutineDayScreen() {
                 await deleteDay(day.id);
                 router.back();
               }}
-              className="h-10 w-10 items-center justify-center rounded-full bg-surface-raised">
+              className="h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
               <Ionicons name="trash-outline" size={18} color="#F87171" />
             </Pressable>
           }
@@ -60,6 +60,7 @@ export default function RoutineDayScreen() {
           contentContainerStyle={{ gap: 10 }}
           renderItem={({ item }) => (
             <Pressable
+              accessibilityRole="button"
               onPress={() =>
                 router.push({
                   pathname: '/routines/exercise-form',
@@ -98,6 +99,7 @@ export default function RoutineDayScreen() {
           }
           ListFooterComponent={
             <Pressable
+              accessibilityRole="button"
               onPress={() =>
                 router.push({ pathname: '/routines/exercise-form', params: { dayId } })
               }
