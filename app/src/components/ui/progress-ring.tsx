@@ -9,6 +9,13 @@ export type ProgressRingProps = {
   strokeWidth?: number;
   trackColor?: string;
   colors?: [string, string];
+  /**
+   * Only pass this when the ring is the sole source of this information --
+   * both current call sites sit next to text that already states the same
+   * progress, so the ring stays hidden from screen readers by default
+   * rather than announcing a redundant, unlabeled element.
+   */
+  accessibilityLabel?: string;
 };
 
 export function ProgressRing({
@@ -17,6 +24,7 @@ export function ProgressRing({
   strokeWidth = 10,
   trackColor = 'rgba(255,255,255,0.08)',
   colors = ['#7C5CFF', '#22D3EE'],
+  accessibilityLabel,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
@@ -25,7 +33,12 @@ export function ProgressRing({
   const path = useMemo(() => Skia.Path.Circle(center, center, radius), [center, radius]);
 
   return (
-    <View style={{ width: size, height: size }}>
+    <View
+      style={{ width: size, height: size }}
+      accessible={accessibilityLabel !== undefined}
+      accessibilityRole={accessibilityLabel !== undefined ? 'image' : undefined}
+      accessibilityLabel={accessibilityLabel}
+      importantForAccessibility={accessibilityLabel !== undefined ? 'yes' : 'no-hide-descendants'}>
       <Canvas style={{ width: size, height: size }}>
         <Group transform={[{ rotate: -Math.PI / 2 }]} origin={vec(center, center)}>
           <Path

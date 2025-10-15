@@ -1,4 +1,4 @@
-import { buildStreakCalendar, mostLoggedExerciseId, weightProgressionByDate } from './stats-store';
+import { buildStreakCalendar, mostLoggedExerciseId, summarizeWeightTrend, weightProgressionByDate } from './stats-store';
 
 jest.mock('@/db/client', () => ({ db: {} }));
 
@@ -78,5 +78,47 @@ describe('weightProgressionByDate', () => {
       'pushup'
     );
     expect(points).toEqual([]);
+  });
+});
+
+describe('summarizeWeightTrend', () => {
+  it('describes an empty series', () => {
+    expect(summarizeWeightTrend('Bench Press', [])).toBe('Bench Press: no sessions logged yet.');
+  });
+
+  it('describes a single point without a trend direction', () => {
+    expect(summarizeWeightTrend('Bench Press', [{ date: '2025-09-01', weightKg: 60 }])).toBe(
+      'Bench Press: 60kg logged so far.'
+    );
+  });
+
+  it('describes an upward trend', () => {
+    const points = [
+      { date: '2025-09-01', weightKg: 57.5 },
+      { date: '2025-09-08', weightKg: 62.5 },
+    ];
+    expect(summarizeWeightTrend('Bench Press', points)).toBe(
+      'Bench Press: up from 57.5kg to 62.5kg over 2 sessions.'
+    );
+  });
+
+  it('describes a downward trend', () => {
+    const points = [
+      { date: '2025-09-01', weightKg: 62.5 },
+      { date: '2025-09-08', weightKg: 57.5 },
+    ];
+    expect(summarizeWeightTrend('Bench Press', points)).toBe(
+      'Bench Press: down from 62.5kg to 57.5kg over 2 sessions.'
+    );
+  });
+
+  it('describes a flat trend', () => {
+    const points = [
+      { date: '2025-09-01', weightKg: 60 },
+      { date: '2025-09-08', weightKg: 60 },
+    ];
+    expect(summarizeWeightTrend('Bench Press', points)).toBe(
+      'Bench Press: flat from 60kg to 60kg over 2 sessions.'
+    );
   });
 });

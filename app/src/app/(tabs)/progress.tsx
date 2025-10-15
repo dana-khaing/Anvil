@@ -9,7 +9,7 @@ import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { WeightChart } from '@/components/ui/weight-chart';
 import { useProgressStore } from '@/stores/progress-store';
-import { useStatsStore } from '@/stores/stats-store';
+import { summarizeWeightTrend, useStatsStore } from '@/stores/stats-store';
 
 export default function ProgressScreen() {
   const streak = useProgressStore((state) => state.streak);
@@ -115,6 +115,8 @@ export default function ProgressScreen() {
             {badges.map((badge) => (
               <View
                 key={badge.id}
+                accessible
+                accessibilityLabel={`${badge.label}: ${badge.description}. ${badge.earned ? 'Earned' : 'Locked'}.`}
                 className={`w-[47%] gap-1 rounded-xl border p-3 ${
                   badge.earned ? 'border-pulse-500 bg-pulse-500/10' : 'border-border bg-surface'
                 }`}>
@@ -134,7 +136,10 @@ export default function ProgressScreen() {
 
         <Card className="gap-3">
           <Text className="text-xs uppercase tracking-wide text-ink-faint">Last 8 weeks</Text>
-          <View className="flex-row flex-wrap gap-1">
+          <View
+            className="flex-row flex-wrap gap-1"
+            accessible
+            accessibilityLabel={`${calendar.filter((day) => day.completed).length} of ${calendar.length} days completed in the last 8 weeks`}>
             {calendar.map((day) => (
               <View
                 key={day.date}
@@ -149,7 +154,10 @@ export default function ProgressScreen() {
             <Text className="text-xs uppercase tracking-wide text-ink-faint">{weightChart.exerciseName}</Text>
             {weightChart.points.length >= 2 ? (
               <>
-                <WeightChart points={weightChart.points} />
+                <WeightChart
+                  points={weightChart.points}
+                  accessibilityLabel={summarizeWeightTrend(weightChart.exerciseName, weightChart.points)}
+                />
                 <Text className="text-ink-muted">
                   {weightChart.points[0].weightKg}kg → {weightChart.points[weightChart.points.length - 1].weightKg}kg
                 </Text>
