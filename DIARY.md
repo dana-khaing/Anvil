@@ -735,3 +735,74 @@ click permission is the piece missing (`osascript is not allowed
 assistive access`, -1719), a more precise diagnosis than prior days had.
 Boot/smoke check confirmed no regression; leaning on the query
 cross-check above plus the 9 unit tests for the rest.
+
+## 2025-10-15 — Visual/accessibility polish
+
+The day Day 7 explicitly reserved for this ("a full pass is explicitly
+Day 16's job; doing it piecemeal now risks inconsistency with whatever
+systematic approach that day takes"). Three real, measured issues rather
+than a vague "improve accessibility" pass:
+
+1. **WCAG contrast failure, calculated not guessed**: computed relative
+   luminance by hand for every text-on-background color pair in the
+   design system. `ink-faint` (`#5B6178`) on `background` (`#05060B`)
+   comes out to ~3.3:1 — fails the 4.5:1 normal-text threshold, and it's
+   the color for badge descriptions, timestamps, and every uppercase
+   section label in the app (18 Tailwind-class usages, plus 11 more
+   hardcoded as a raw hex literal in places a className can't reach —
+   `Ionicons` `color`, `placeholderTextColor` — that would have silently
+   drifted from the token otherwise). `#7A8099` keeps the same blue-gray
+   hue and measures ~5.2:1. `ink-muted` and `danger` were already fine
+   (~7.9:1 and ~7.3:1) — didn't touch what wasn't broken.
+2. **Non-text information with zero screen-reader exposure**: the
+   Day 11 badge grid conveyed earned/locked status *only* through border
+   color and icon choice — nothing a screen reader could announce. The
+   Day 15 streak calendar's 56 day-squares and the `WeightChart`'s trend
+   line had the same problem in different shapes. Fixed each
+   appropriately rather than applying one blanket pattern: badges became
+   one accessible element per card with earned/locked stated in words;
+   the calendar collapsed to one summary ("12 of 56 days completed") since
+   56 individually-swiped unlabeled cells is a bad screen-reader
+   experience regardless of labeling (the same reason GitHub-style
+   contribution graphs don't expose per-cell semantics either); the chart
+   got a real generated description (`summarizeWeightTrend`, 5 tests) since
+   the trend between points genuinely isn't stated anywhere else. Also
+   gave `ProgressRing` an opt-in `accessibilityLabel` prop but left both
+   *current* call sites (Today's set-progress ring, the monthly-goal ring)
+   without one and hidden from the accessibility tree by default — both
+   sit directly next to text already stating the same number, so an
+   unlabeled ring would have been a second, confusing stop for no new
+   information.
+3. **Inconsistent button semantics**: audited every raw `Pressable` in
+   the app. Roughly half already had `accessibilityRole="button"` (tab
+   bar, `OptionCard`, most icon-only buttons); the other half didn't —
+   the same kind of element got different VoiceOver treatment depending
+   on which screen it was on. Added the missing role to 7 of them, plus
+   `accessibilityLabel` on 4 text inputs that only had a *visible* label
+   via adjacent `Text` rather than a programmatic one. While in this code
+   anyway, bumped three icon-only buttons (header back, video-player
+   close, delete day) from a 40pt to a 44pt touch target to clear Apple's
+   HIG minimum — they already had generous `hitSlop`, but the visible
+   target itself was under the guideline.
+
+Deliberately deferred, named rather than dropped: the real app icon.
+Flagged back on Day 2 ("still Expo's placeholder... can land whenever
+branding work happens") and still true — generating one means committing
+to an actual visual identity (mark, color story beyond the existing UI
+palette, platform-specific export sizes), which is a real design
+decision this build hasn't made yet, not a mechanical fix like the three
+above. Doing it as a rushed add-on today risked exactly the kind of
+"inconsistent with whatever systematic approach" outcome this day was
+supposed to avoid.
+
+Verification: the contrast numbers are exact (hand-computed relative
+luminance, not eyeballed), and a boot/smoke check confirmed the changes
+render — no crash, tab bar icons visibly render in the new color. Could
+not verify the actual VoiceOver experience end to end: turning VoiceOver
+on in Settings needs the same tap access already unavailable in this
+environment (Days 4/5/8/10/12/15), so every fix here is verified by
+computed contrast numbers, code review, and the underlying RN
+accessibility prop contracts (`accessible`, `accessibilityRole`,
+`accessibilityLabel`) rather than by actually hearing a screen reader
+announce it. Full typecheck/lint/85-test suite green throughout (5 new
+tests, for `summarizeWeightTrend`).
