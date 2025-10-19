@@ -10,6 +10,7 @@ import { AnimatedSplashOverlay } from '@/components/splash-overlay';
 import { db } from '@/db/client';
 import { seedExerciseLibrary } from '@/db/seed';
 import { useAuthStore } from '@/stores/auth-store';
+import { useNotificationsStore } from '@/stores/notifications-store';
 import { useProfileStore } from '@/stores/profile-store';
 import migrations from '../../drizzle/migrations';
 
@@ -23,6 +24,7 @@ export default function RootLayout() {
   const loadProfile = useProfileStore((state) => state.load);
   const authChecked = useAuthStore((state) => state.checked);
   const initAuth = useAuthStore((state) => state.init);
+  const loadNotifications = useNotificationsStore((state) => state.load);
 
   useEffect(() => {
     if (!success) return;
@@ -31,7 +33,11 @@ export default function RootLayout() {
       loadProfile();
     });
     initAuth();
-  }, [success, loadProfile, initAuth]);
+    // Best-effort: re-tops the daily-reminder queue if notifications are
+    // already enabled. Not part of the `ready` gate below -- a native
+    // scheduling round-trip shouldn't hold up the rest of the app.
+    loadNotifications();
+  }, [success, loadProfile, initAuth, loadNotifications]);
 
   if (error) {
     return (

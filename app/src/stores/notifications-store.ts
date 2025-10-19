@@ -101,7 +101,18 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   load: async () => {
     const profile = await getLocalProfile();
     const { status } = await Notifications.getPermissionsAsync();
-    set({ enabled: (profile?.notificationsEnabled ?? false) && status === 'granted', permissionStatus: status, loaded: true });
+    const enabled = (profile?.notificationsEnabled ?? false) && status === 'granted';
+
+    // There's no background job re-topping the 14-day reminder queue while
+    // the app is closed (see Day 12's diary), so an ordinary app open is
+    // the actual mechanism that's supposed to keep it from running dry --
+    // it was only ever wired to the explicit enable() toggle, so the queue
+    // silently emptied after 14 days no matter how often the app was used.
+    if (enabled) {
+      await scheduleDailyReminders().catch(() => {});
+    }
+
+    set({ enabled, permissionStatus: status, loaded: true });
   },
 
   enable: async () => {
