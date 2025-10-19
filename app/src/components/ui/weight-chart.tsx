@@ -2,6 +2,8 @@ import { Canvas, LinearGradient, Path, Skia, vec } from '@shopify/react-native-s
 import { useMemo } from 'react';
 import { View } from 'react-native';
 
+import { colors } from '@/constants/colors';
+
 export type WeightChartPoint = { date: string; weightKg: number };
 
 export type WeightChartProps = {
@@ -42,7 +44,7 @@ export function WeightChart({ points, width = 280, height = 120, accessibilityLa
       accessibilityLabel={accessibilityLabel}>
       <Canvas style={{ width, height }}>
         <Path path={path} style="stroke" strokeWidth={3} strokeCap="round" strokeJoin="round">
-          <LinearGradient start={vec(0, 0)} end={vec(width, 0)} colors={['#7C5CFF', '#22D3EE']} />
+          <LinearGradient start={vec(0, 0)} end={vec(width, 0)} colors={[colors.pulse500, colors.cyan400]} />
         </Path>
       </Canvas>
     </View>

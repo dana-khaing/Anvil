@@ -2,6 +2,8 @@ import { Canvas, Group, Path, Skia, SweepGradient, vec } from '@shopify/react-na
 import { useMemo } from 'react';
 import { View } from 'react-native';
 
+import { colors as themeColors } from '@/constants/colors';
+
 export type ProgressRingProps = {
   /** 0 to 1 */
   progress: number;
@@ -23,7 +25,7 @@ export function ProgressRing({
   size = 96,
   strokeWidth = 10,
   trackColor = 'rgba(255,255,255,0.08)',
-  colors = ['#7C5CFF', '#22D3EE'],
+  colors = [themeColors.pulse500, themeColors.cyan400],
   accessibilityLabel,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;

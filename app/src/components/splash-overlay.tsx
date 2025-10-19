@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeOut } from 'react-native-reanimated';
 
+import { colors } from '@/constants/colors';
+
 const FADE_DURATION = 350;
 
 type AnimatedSplashOverlayProps = {
@@ -36,7 +38,7 @@ export function AnimatedSplashOverlay({ ready }: AnimatedSplashOverlayProps) {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#05060B',
+    backgroundColor: colors.background,
     zIndex: 1000,
   },
 });

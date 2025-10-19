@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { VideoPlayerSheet } from '@/components/ui/video-player-sheet';
+import { colors } from '@/constants/colors';
 import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useRoutinesStore } from '@/stores/routines-store';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
@@ -153,7 +154,7 @@ export default function TodayScreen() {
                       accessibilityLabel={`Watch video for ${displayName}`}
                       hitSlop={12}
                       onPress={() => setPlayingVideoUrl(displayVideoUrl)}>
-                      <Ionicons name="play-circle-outline" size={22} color="#9C82FF" />
+                      <Ionicons name="play-circle-outline" size={22} color={colors.pulse400} />
                     </Pressable>
                   )}
                 </View>

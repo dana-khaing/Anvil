@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { WeightChart } from '@/components/ui/weight-chart';
+import { colors } from '@/constants/colors';
 import { useProgressStore } from '@/stores/progress-store';
 import { summarizeWeightTrend, useStatsStore } from '@/stores/stats-store';
 
@@ -53,7 +54,7 @@ export default function ProgressScreen() {
             <Ionicons
               name={streak.currentStreak > 0 ? 'flame' : 'flame-outline'}
               size={28}
-              color={streak.currentStreak > 0 ? '#FF7A1A' : '#7A8099'}
+              color={streak.currentStreak > 0 ? colors.flame500 : colors.inkFaint}
             />
           </View>
           <View className="flex-1">
@@ -71,7 +72,7 @@ export default function ProgressScreen() {
 
           {monthlyGoal && !editingGoal ? (
             <View className="flex-row items-center gap-4">
-              <ProgressRing progress={goalProgress} size={64} strokeWidth={7} colors={['#7C5CFF', '#22D3EE']} />
+              <ProgressRing progress={goalProgress} size={64} strokeWidth={7} colors={[colors.pulse500, colors.cyan400]} />
               <View className="flex-1">
                 <Text className="text-xl font-semibold text-ink">
                   {monthlyGoal.completedCount} / {monthlyGoal.targetCount} workouts
@@ -123,7 +124,7 @@ export default function ProgressScreen() {
                 <Ionicons
                   name={badge.earned ? 'ribbon' : 'lock-closed-outline'}
                   size={20}
-                  color={badge.earned ? '#9C82FF' : '#7A8099'}
+                  color={badge.earned ? colors.pulse400 : colors.inkFaint}
                 />
                 <Text className={`text-sm font-semibold ${badge.earned ? 'text-ink' : 'text-ink-faint'}`}>
                   {badge.label}

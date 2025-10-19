@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { colors } from '@/constants/colors';
 import { useRoutinesStore } from '@/stores/routines-store';
 
 export default function RoutinesScreen() {
@@ -64,7 +65,7 @@ export default function RoutinesScreen() {
                 accessibilityRole="button"
                 onPress={() => setAddingDay(true)}
                 className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4">
-                <Ionicons name="add" size={18} color="#9AA1B8" />
+                <Ionicons name="add" size={18} color={colors.inkMuted} />
                 <Text className="text-ink-muted">Add another day</Text>
               </Pressable>
             ) : null
@@ -78,7 +79,7 @@ export default function RoutinesScreen() {
               value={newDayLabel}
               onChangeText={setNewDayLabel}
               placeholder="e.g. D1 - Chest and Tricep"
-              placeholderTextColor="#7A8099"
+              placeholderTextColor={colors.inkFaint}
               accessibilityLabel="Day name"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"
             />

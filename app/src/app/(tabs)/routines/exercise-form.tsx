@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { colors } from '@/constants/colors';
 import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useRoutinesStore } from '@/stores/routines-store';
 
@@ -75,7 +76,7 @@ export default function ExerciseFormScreen() {
             value={search}
             onChangeText={setSearch}
             placeholder="Search exercises"
-            placeholderTextColor="#7A8099"
+            placeholderTextColor={colors.inkFaint}
             accessibilityLabel="Search exercises"
             className="mb-3 rounded-xl border border-border bg-surface-raised px-4 py-3 text-base text-ink"
           />
@@ -133,7 +134,7 @@ export default function ExerciseFormScreen() {
               value={videoUrl}
               onChangeText={setVideoUrl}
               placeholder="https://youtube.com/..."
-              placeholderTextColor="#7A8099"
+              placeholderTextColor={colors.inkFaint}
               autoCapitalize="none"
               keyboardType="url"
               accessibilityLabel="Video link (optional)"

@@ -1,3 +1,6 @@
+// Raw-hex-value counterpart for the places NativeWind classNames can't
+// reach (Ionicons `color`, `placeholderTextColor`, Skia props): see
+// src/constants/colors.ts. Kept in sync by hand -- update both together.
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],

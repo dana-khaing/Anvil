@@ -9,6 +9,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassPanel } from '@/components/ui/glass-panel';
+import { colors } from '@/constants/colors';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -90,7 +91,7 @@ function TabBarButton({ label, iconName, isFocused, onPress }: TabBarButtonProps
       <Animated.View
         className={`items-center justify-center rounded-xl px-3 py-1.5 ${isFocused ? 'bg-pulse-500/20' : ''}`}
         style={animatedStyle}>
-        <Ionicons name={iconName} size={22} color={isFocused ? '#9C82FF' : '#7A8099'} />
+        <Ionicons name={iconName} size={22} color={isFocused ? colors.pulse400 : colors.inkFaint} />
       </Animated.View>
     </Pressable>
   );
