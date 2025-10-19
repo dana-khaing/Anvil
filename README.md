@@ -8,26 +8,38 @@ to the cloud when you're back online.
 
 ## Status
 
-🚧 Early build. Day 16 of a day-by-day build: repo scaffold through a
-visual/accessibility pass (WCAG-AA contrast, screen-reader labels on
-every chart/badge/calendar, consistent button semantics) are in. Auto-
-recommended video search is still deferred until it has a YouTube Data
-API key to call. See
-[`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
+✅ Day 17 of 17 — the planned day-by-day build is complete: routines,
+onboarding, workout sessions with substitution, in-app video, Supabase
+auth + backup/restore sync, streaks/goals/badges, local notifications, a
+Gemini-backed AI coach grounded in your actual routine, progress
+history/charts, and a WCAG-AA accessibility pass, with three refactor
+passes along the way to keep debt from piling up. Honestly still
+missing, not silently dropped: auto-recommended video search (no YouTube
+Data API key yet), a real app icon, a background job to keep the
+notification queue topped up without an app open, and true multi-device
+continuous sync (what's shipped is deliberately backup/restore, not
+conflict-resolving merge). See
+[`DIARY.md`](./DIARY.md) for the full day-by-day log of what was built,
+what was cut, and why.
 
-## Planned features
+## Features
 
 - Structured routine builder (name, weight, reps, sets, video per exercise)
 - Guided onboarding (height/weight/goal → starter routine) or fully manual setup
 - Workout session flow: mark an exercise finished, auto-advance to the next
 - Exercise substitution: swap to a bodyweight/dumbbell/free alternative when
   a machine isn't available, with reps/sets adjusted automatically
-- In-app exercise videos — your own YouTube link, or an auto-recommended one
-  — playing inside the app, never redirecting out
+- In-app exercise videos, playing inside the app, never redirecting out —
+  your own YouTube link works today; auto-recommended search is written
+  but waiting on a YouTube Data API key
 - Daily/monthly goals, workout streaks, and achievement badges
-- Local reminders, tip-of-the-day, and a re-engagement nudge if you've been away
-- An in-app AI coach (Gemini) that can answer questions about your routine
-- Account + cross-device sync, with full offline support as the default mode
+- Local reminders (a daily tip, a re-engagement nudge if you've been away)
+- An in-app AI coach (Gemini) that answers questions grounded in your
+  actual routine, not generic advice
+- Workout history, a weight-progression chart, and an 8-week streak calendar
+- Account + backup/restore sync, with full offline support as the default
+  mode — true continuous multi-device merge is a deliberately deferred,
+  harder problem (see `DIARY.md`, Day 10)
 
 ## Tech stack
 
