@@ -4,7 +4,7 @@ import { create } from 'zustand';
 
 import { db } from '@/db/client';
 import { getLocalProfile } from '@/db/profile';
-import { profiles } from '@/db/schema';
+import { profiles, streaks } from '@/db/schema';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -131,6 +131,16 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     }
     await scheduleDailyReminders();
     set({ enabled: true, permissionStatus: status });
+
+    // Opting in while already mid-inactivity is exactly when a re-engagement
+    // nudge is most useful -- without this, it wouldn't get scheduled until
+    // the *next* workout completion, which defeats the point for someone
+    // who's already gone quiet.
+    const [streakRow] = await db.select().from(streaks).limit(1);
+    if (streakRow?.lastWorkoutDate) {
+      await get().rescheduleReengagement(streakRow.lastWorkoutDate);
+    }
+
     return true;
   },
 
