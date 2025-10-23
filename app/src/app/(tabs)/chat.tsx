@@ -64,7 +64,7 @@ export default function ChatScreen() {
 
         {error && <Text className="px-6 pb-2 text-sm text-danger">{error}</Text>}
 
-        <View className="flex-row items-end gap-3 px-6 pb-3 pt-2">
+        <View className="flex-row items-end gap-3 px-6 pb-32 pt-2">
           <TextInput
             value={draft}
             onChangeText={setDraft}
