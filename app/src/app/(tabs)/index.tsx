@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -8,8 +7,9 @@ import { SubstitutionPicker } from '@/components/workout/substitution-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { SlideToConfirm } from '@/components/ui/slide-to-confirm';
 import { VideoPlayerSheet } from '@/components/ui/video-player-sheet';
-import { colors } from '@/constants/colors';
+import { VideoThumbnail } from '@/components/ui/video-thumbnail';
 import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useRoutinesStore } from '@/stores/routines-store';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
@@ -146,24 +146,20 @@ export default function TodayScreen() {
                     </Pressable>
                   )}
                 </View>
-                <View className="mt-1 flex-row items-center gap-2">
-                  <Text className="text-2xl font-semibold text-ink">{displayName}</Text>
-                  {displayVideoUrl && (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Watch video for ${displayName}`}
-                      hitSlop={12}
-                      onPress={() => setPlayingVideoUrl(displayVideoUrl)}>
-                      <Ionicons name="play-circle-outline" size={22} color={colors.pulse400} />
-                    </Pressable>
-                  )}
-                </View>
+                <Text className="mt-1 text-2xl font-semibold text-ink">{displayName}</Text>
                 {activeSubstitution && (
                   <Text className="mt-0.5 text-xs text-ink-faint">
                     Swapped for {currentExercise.exercise.name}
                   </Text>
                 )}
               </View>
+              {displayVideoUrl && (
+                <VideoThumbnail
+                  videoUrl={displayVideoUrl}
+                  exerciseName={displayName ?? ''}
+                  onPress={() => setPlayingVideoUrl(displayVideoUrl)}
+                />
+              )}
               <View className="flex-row gap-6">
                 <Stat
                   label="Weight"
@@ -175,16 +171,14 @@ export default function TodayScreen() {
                 />
                 <Stat label="Sets" value={String(displayTargets.targetSets)} />
               </View>
-              <View className="flex-row gap-3">
-                <View className="flex-1">
-                  <Button variant="secondary" onPress={() => setShowSubstitutePicker(true)}>
-                    Swap
-                  </Button>
-                </View>
-                <View className="flex-1">
-                  <Button onPress={() => finishExercise(currentExercise.id)}>Finished</Button>
-                </View>
-              </View>
+              <Button variant="secondary" onPress={() => setShowSubstitutePicker(true)}>
+                Swap
+              </Button>
+              <SlideToConfirm
+                key={currentExercise.id}
+                onConfirm={() => finishExercise(currentExercise.id)}
+                accessibilityLabel={`Finish ${displayName}`}
+              />
             </Card>
           )}
         </View>
