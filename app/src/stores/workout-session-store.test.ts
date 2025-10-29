@@ -12,6 +12,17 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
+// Pulled in transitively via notifications-store.ts (rescheduleReengagement
+// on finishExercise), which itself imports notifications-background-task.ts.
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskRegisteredAsync: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('expo-background-task', () => ({
+  registerTaskAsync: jest.fn(),
+  unregisterTaskAsync: jest.fn(),
+  BackgroundTaskResult: { Success: 1, Failed: 2 },
+}));
 
 function makeDay(id: number, label: string): DayWithExercises {
   return {

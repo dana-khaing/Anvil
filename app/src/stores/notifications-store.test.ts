@@ -13,6 +13,17 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
+// Pulled in transitively via notifications-background-task.ts, which this
+// store imports to register/unregister the background top-up task.
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskRegisteredAsync: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('expo-background-task', () => ({
+  registerTaskAsync: jest.fn(),
+  unregisterTaskAsync: jest.fn(),
+  BackgroundTaskResult: { Success: 1, Failed: 2 },
+}));
 
 const TIPS = ['a', 'b', 'c'];
 
