@@ -28,12 +28,13 @@ const routine: Routine = {
 };
 
 function makeDay(label: string, exercises: DayWithExercises['exercises']): DayWithExercises {
-  return { id: 1, remoteId: null, routineId: 1, label, dayOrder: 1, updatedAt: '2025-09-22', exercises };
+  return { id: 1, remoteId: null, routineId: 1, label, dayOrder: 1, updatedAt: '2025-09-22', deletedAt: null, exercises };
 }
 
 const benchPress: DayWithExercises['exercises'][number] = {
   id: 1,
   remoteId: null,
+  deletedAt: null,
   routineDayId: 1,
   exerciseId: 'barbell-bench-press',
   orderIndex: 0,
