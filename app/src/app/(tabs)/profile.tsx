@@ -43,11 +43,9 @@ export default function ProfileScreen() {
     loadNotifications();
   }, [loadProfile, loadNotifications]);
 
-  useEffect(() => {
-    if (session) sync(session.user.id);
-    // Runs once per session change, not on every sync() identity change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  // Automatic sync (sign-in, foreground, periodic) now lives in the root
+  // layout so it runs regardless of which tab is open -- this screen only
+  // owns the explicit "Sync now" button below.
 
   return (
     <SafeAreaView className="flex-1 bg-background">
