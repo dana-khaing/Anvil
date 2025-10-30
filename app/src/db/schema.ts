@@ -49,6 +49,13 @@ export const routineDays = sqliteTable('routine_days', {
   label: text('label').notNull(),
   dayOrder: integer('day_order').notNull(),
   updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
+  /**
+   * Sync tombstone (Day 30): deletes are soft so the delete itself is a row
+   * change that can propagate to other devices, instead of just vanishing
+   * locally. Only `routine_days` and `routine_exercises` get this column --
+   * they're the only two tables with an actual delete path in the app today.
+   */
+  deletedAt: text('deleted_at'),
 });
 
 /** An exercise placed on a routine day, with the user's target weight/reps/sets. */
@@ -70,6 +77,8 @@ export const routineExercises = sqliteTable('routine_exercises', {
   videoUrl: text('video_url'),
   notes: text('notes'),
   updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
+  /** Sync tombstone -- see routineDays.deletedAt. */
+  deletedAt: text('deleted_at'),
 });
 
 export const workoutSessions = sqliteTable('workout_sessions', {
@@ -124,4 +133,15 @@ export const chatMessages = sqliteTable('chat_messages', {
   role: text('role', { enum: ['user', 'assistant'] }).notNull(),
   content: text('content').notNull(),
   createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+});
+
+/**
+ * Local-only sync bookkeeping (Day 30) -- a single row per device holding
+ * the watermark that turns sync from "push everything unsynced, pull
+ * everything on first run" into incremental push/pull: only rows changed
+ * since `lastSyncedAt` are considered. Never synced to Supabase itself.
+ */
+export const syncState = sqliteTable('sync_state', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  lastSyncedAt: text('last_synced_at'),
 });
