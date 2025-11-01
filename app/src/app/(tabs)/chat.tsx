@@ -86,7 +86,10 @@ export default function ChatScreen() {
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   return (
-    <View className={`max-w-[85%] rounded-2xl px-4 py-3 ${isUser ? 'self-end bg-pulse-500' : 'self-start bg-surface-raised'}`}>
+    <View
+      accessible
+      accessibilityLabel={`${isUser ? 'You' : 'Coach'}: ${message.content}`}
+      className={`max-w-[85%] rounded-2xl px-4 py-3 ${isUser ? 'self-end bg-pulse-500' : 'self-start bg-surface-raised'}`}>
       <Text className="text-ink">{message.content}</Text>
     </View>
   );
