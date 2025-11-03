@@ -81,6 +81,9 @@ export default function TodayScreen() {
   const displayVideoUrl = activeSubstitution
     ? activeSubstitution.exercise.defaultVideoUrl
     : (currentExercise?.videoUrl ?? currentExercise?.exercise.defaultVideoUrl);
+  const upNext = today.exercises.filter(
+    (exercise) => !completedExerciseIds.has(exercise.id) && exercise.id !== currentExercise?.id
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -95,7 +98,7 @@ export default function TodayScreen() {
           <ProgressRing progress={progress} size={64} strokeWidth={7} />
         </View>
 
-        <View className="flex-1 justify-center">
+        <View className="mt-4 gap-4">
           {total === 0 && (
             <Card>
               <Text className="text-ink-muted">
@@ -172,13 +175,30 @@ export default function TodayScreen() {
                 <Stat label="Sets" value={String(displayTargets.targetSets)} />
               </View>
               <Button variant="secondary" onPress={() => setShowSubstitutePicker(true)}>
-                Swap
+                Change to Alternate exercise
               </Button>
               <SlideToConfirm
                 key={currentExercise.id}
                 onConfirm={() => finishExercise(currentExercise.id)}
                 accessibilityLabel={`Finish ${displayName}`}
               />
+            </Card>
+          )}
+
+          {session && !isComplete && !showSubstitutePicker && upNext.length > 0 && (
+            <Card className="gap-3">
+              <Text className="text-xs uppercase tracking-wide text-ink-faint">Up next</Text>
+              <View className="gap-3">
+                {upNext.map((exercise) => (
+                  <View key={exercise.id} className="flex-row items-center justify-between">
+                    <Text className="text-ink">{exercise.exercise.name}</Text>
+                    <Text className="text-ink-muted">
+                      {exercise.targetWeightKg ? `${exercise.targetWeightKg}kg` : 'Body'} ·{' '}
+                      {exercise.targetRepsMin ?? '-'}-{exercise.targetRepsMax ?? '-'} · {exercise.targetSets} sets
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </Card>
           )}
         </View>
