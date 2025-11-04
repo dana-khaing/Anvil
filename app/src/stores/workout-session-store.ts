@@ -84,30 +84,35 @@ export type ActiveSubstitution = {
   adjusted: SubstitutionTargets;
 };
 
+export type LogSetResult = { exerciseCompleted: boolean; sessionCompleted: boolean };
+
 type WorkoutSessionState = {
   today: DayWithExercises | null;
   session: WorkoutSession | null;
-  /** routineExercise ids already logged for the active session. */
+  /** routineExercise ids whose target set count has been fully logged for the active session. */
   completedExerciseIds: Set<number>;
+  /** Sets already logged for whichever exercise is current (not yet in completedExerciseIds). Reset to 0 on exercise advance. */
+  setsLoggedForCurrent: number;
   substitution: ActiveSubstitution | null;
   loaded: boolean;
   load: (days: DayWithExercises[]) => Promise<void>;
   startSession: () => Promise<void>;
   substitute: (routineExerciseId: number, alternative: Exercise) => void;
   clearSubstitution: () => void;
-  finishExercise: (routineExerciseId: number) => Promise<void>;
+  logSet: (routineExerciseId: number) => Promise<LogSetResult>;
 };
 
 export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => ({
   today: null,
   session: null,
   completedExerciseIds: new Set(),
+  setsLoggedForCurrent: 0,
   substitution: null,
   loaded: false,
 
   load: async (days) => {
     if (days.length === 0) {
-      set({ today: null, session: null, completedExerciseIds: new Set(), loaded: true });
+      set({ today: null, session: null, completedExerciseIds: new Set(), setsLoggedForCurrent: 0, loaded: true });
       return;
     }
 
@@ -136,15 +141,31 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     }
 
     let completedExerciseIds = new Set<number>();
-    if (session) {
+    let setsLoggedForCurrent = 0;
+    if (session && today) {
       const logs = await db
         .select({ routineExerciseId: setLogs.routineExerciseId })
         .from(setLogs)
         .where(eq(setLogs.sessionId, session.id));
-      completedExerciseIds = new Set(logs.map((log) => log.routineExerciseId));
+
+      // Sets are now logged one at a time (see logSet), so resuming an
+      // in-progress session needs to tell "fully logged" apart from
+      // "partway through" per exercise, not just "has any log at all".
+      const countsByExercise = new Map<number, number>();
+      for (const log of logs) {
+        countsByExercise.set(log.routineExerciseId, (countsByExercise.get(log.routineExerciseId) ?? 0) + 1);
+      }
+      for (const [routineExerciseId, count] of countsByExercise) {
+        const targetSets = today.exercises.find((exercise) => exercise.id === routineExerciseId)?.targetSets ?? 1;
+        if (count >= targetSets) {
+          completedExerciseIds.add(routineExerciseId);
+        } else {
+          setsLoggedForCurrent = count;
+        }
+      }
     }
 
-    set({ today: today ?? null, session, completedExerciseIds, substitution: null, loaded: true });
+    set({ today: today ?? null, session, completedExerciseIds, setsLoggedForCurrent, substitution: null, loaded: true });
   },
 
   startSession: async () => {
@@ -156,7 +177,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       .values({ routineDayId: today.id, status: 'in_progress' })
       .returning();
 
-    set({ session: created, completedExerciseIds: new Set(), substitution: null });
+    set({ session: created, completedExerciseIds: new Set(), setsLoggedForCurrent: 0, substitution: null });
   },
 
   substitute: (routineExerciseId, alternative) => {
@@ -170,12 +191,13 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
 
   clearSubstitution: () => set({ substitution: null }),
 
-  finishExercise: async (routineExerciseId) => {
-    const { session, today, substitution } = get();
-    if (!session || !today) return;
+  logSet: async (routineExerciseId) => {
+    const { session, today, substitution, setsLoggedForCurrent } = get();
+    const notDone: LogSetResult = { exerciseCompleted: false, sessionCompleted: false };
+    if (!session || !today) return notDone;
 
     const entry = today.exercises.find((exercise) => exercise.id === routineExerciseId);
-    if (!entry) return;
+    if (!entry) return notDone;
 
     const activeSubstitution =
       substitution?.forRoutineExerciseId === routineExerciseId ? substitution : null;
@@ -183,22 +205,28 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     const substitutedExerciseId = activeSubstitution?.exercise.id ?? null;
 
     const setCount = targets.targetSets ?? 1;
-    for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
-      await db.insert(setLogs).values({
-        sessionId: session.id,
-        routineExerciseId,
-        substitutedExerciseId,
-        setNumber,
-        weightKg: targets.targetWeightKg,
-        reps: targets.targetRepsMax ?? targets.targetRepsMin,
-      });
+    const setNumber = setsLoggedForCurrent + 1;
+
+    await db.insert(setLogs).values({
+      sessionId: session.id,
+      routineExerciseId,
+      substitutedExerciseId,
+      setNumber,
+      weightKg: targets.targetWeightKg,
+      reps: targets.targetRepsMax ?? targets.targetRepsMin,
+    });
+
+    if (setNumber < setCount) {
+      set({ setsLoggedForCurrent: setNumber });
+      return notDone;
     }
 
     const nextCompleted = new Set(get().completedExerciseIds);
     nextCompleted.add(routineExerciseId);
-    set({ completedExerciseIds: nextCompleted, substitution: null });
+    const sessionCompleted = nextCompleted.size >= today.exercises.length;
+    set({ completedExerciseIds: nextCompleted, substitution: null, setsLoggedForCurrent: 0 });
 
-    if (nextCompleted.size >= today.exercises.length) {
+    if (sessionCompleted) {
       const finishedAt = new Date().toISOString();
       await db
         .update(workoutSessions)
@@ -208,5 +236,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       await useProgressStore.getState().recordWorkoutCompletion(finishedAt);
       await useNotificationsStore.getState().rescheduleReengagement(toCalendarDate(finishedAt));
     }
+
+    return { exerciseCompleted: true, sessionCompleted };
   },
 }));
