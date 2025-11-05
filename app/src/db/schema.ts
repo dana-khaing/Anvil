@@ -48,6 +48,8 @@ export const routineDays = sqliteTable('routine_days', {
     .references(() => routines.id, { onDelete: 'cascade' }),
   label: text('label').notNull(),
   dayOrder: integer('day_order').notNull(),
+  /** JSON-encoded string[] of muscle-group tags (specific groups and/or coarse categories), user-chosen at day creation. Powers the 48h rest-conflict check. */
+  muscleGroups: text('muscle_groups').notNull().default('[]'),
   updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 
@@ -83,6 +85,8 @@ export const workoutSessions = sqliteTable('workout_sessions', {
     .default('in_progress'),
   startedAt: text('started_at').notNull().default(sql`(current_timestamp)`),
   finishedAt: text('finished_at'),
+  /** False when this session was started as a 48h-rest-warning override -- it still completes and logs normally, but doesn't advance streak/badges. */
+  countsTowardStreak: integer('counts_toward_streak', { mode: 'boolean' }).notNull().default(true),
   updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 

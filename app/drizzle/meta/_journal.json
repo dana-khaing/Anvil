@@ -22,6 +22,13 @@
       "when": 1786728489612,
       "tag": "0002_exotic_glorian",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786907098174,
+      "tag": "0003_fluffy_machine_man",
+      "breakpoints": true
     }
   ]
 }
