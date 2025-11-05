@@ -106,12 +106,27 @@ async function loadStreakRow() {
   return created;
 }
 
-/** Local calendar dates of every completed session, for anything that needs a completion history (e.g. Day 15's streak calendar). */
+/** Local calendar dates of every completed session, for anything that needs a completion history (e.g. Day 15's streak calendar). Deliberately unfiltered by countsTowardStreak -- history/calendar show what actually happened, not just what counted. */
 export async function completedSessionDates(): Promise<string[]> {
   const rows = await db
     .select({ finishedAt: workoutSessions.finishedAt })
     .from(workoutSessions)
     .where(and(eq(workoutSessions.status, 'completed'), isNotNull(workoutSessions.finishedAt)));
+  return rows.map((row) => toCalendarDate(row.finishedAt as string));
+}
+
+/** Same as completedSessionDates, but excluding rest-warning-override sessions -- feeds totalWorkouts/badges specifically, per the "shouldn't count as a fresh accomplishment" rule for retraining a muscle group too soon. */
+async function completedSessionDatesCountingTowardStreak(): Promise<string[]> {
+  const rows = await db
+    .select({ finishedAt: workoutSessions.finishedAt })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.status, 'completed'),
+        isNotNull(workoutSessions.finishedAt),
+        eq(workoutSessions.countsTowardStreak, true)
+      )
+    );
   return rows.map((row) => toCalendarDate(row.finishedAt as string));
 }
 
@@ -137,7 +152,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
   load: async () => {
     const streakRow = await loadStreakRow();
-    const dates = await completedSessionDates();
+    const dates = await completedSessionDatesCountingTowardStreak();
     const totalWorkouts = dates.length;
     const monthlyGoal = await loadMonthlyGoal(currentMonthRange(new Date()));
 

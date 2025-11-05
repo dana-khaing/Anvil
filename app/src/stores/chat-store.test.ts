@@ -28,7 +28,16 @@ const routine: Routine = {
 };
 
 function makeDay(label: string, exercises: DayWithExercises['exercises']): DayWithExercises {
-  return { id: 1, remoteId: null, routineId: 1, label, dayOrder: 1, updatedAt: '2025-09-22', exercises };
+  return {
+    id: 1,
+    remoteId: null,
+    routineId: 1,
+    label,
+    dayOrder: 1,
+    muscleGroups: '[]',
+    updatedAt: '2025-09-22',
+    exercises,
+  };
 }
 
 const benchPress: DayWithExercises['exercises'][number] = {
