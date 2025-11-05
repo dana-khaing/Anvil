@@ -6,8 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { MuscleGroupPicker } from '@/components/ui/muscle-group-picker';
 import { colors } from '@/constants/colors';
-import { useRoutinesStore } from '@/stores/routines-store';
+import { parseMuscleGroups, useRoutinesStore } from '@/stores/routines-store';
 
 export default function RoutinesScreen() {
   const days = useRoutinesStore((state) => state.days);
@@ -17,6 +18,7 @@ export default function RoutinesScreen() {
 
   const [addingDay, setAddingDay] = useState(false);
   const [newDayLabel, setNewDayLabel] = useState('');
+  const [newDayMuscleGroups, setNewDayMuscleGroups] = useState<string[]>([]);
 
   useEffect(() => {
     load();
@@ -25,8 +27,9 @@ export default function RoutinesScreen() {
   const submitNewDay = async () => {
     const label = newDayLabel.trim();
     if (!label) return;
-    await addDay(label);
+    await addDay(label, newDayMuscleGroups);
     setNewDayLabel('');
+    setNewDayMuscleGroups([]);
     setAddingDay(false);
   };
 
@@ -56,6 +59,15 @@ export default function RoutinesScreen() {
                 <Text className="mt-1 text-sm text-ink-muted">
                   {day.exercises.length} exercise{day.exercises.length === 1 ? '' : 's'}
                 </Text>
+                {parseMuscleGroups(day.muscleGroups).length > 0 && (
+                  <View className="mt-2 flex-row flex-wrap gap-1.5">
+                    {parseMuscleGroups(day.muscleGroups).map((group) => (
+                      <View key={group} className="rounded-full bg-pulse-500/15 px-2.5 py-1">
+                        <Text className="text-xs text-pulse-400">{group.replace('_', ' ')}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </Card>
             </Pressable>
           )}
@@ -83,6 +95,10 @@ export default function RoutinesScreen() {
               accessibilityLabel="Day name"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"
             />
+            <View>
+              <Text className="mb-1.5 text-sm text-ink-muted">Muscle group(s) (optional)</Text>
+              <MuscleGroupPicker selected={newDayMuscleGroups} onChange={setNewDayMuscleGroups} />
+            </View>
             <View className="flex-row gap-3">
               <View className="flex-1">
                 <Button
@@ -90,6 +106,7 @@ export default function RoutinesScreen() {
                   onPress={() => {
                     setAddingDay(false);
                     setNewDayLabel('');
+                    setNewDayMuscleGroups([]);
                   }}>
                   Cancel
                 </Button>
