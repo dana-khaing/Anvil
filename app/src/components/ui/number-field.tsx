@@ -1,4 +1,4 @@
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/constants/colors';
 
@@ -6,6 +6,9 @@ export type NumberFieldProps = {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
+  min?: number;
+  max?: number;
+  step?: number;
 };
 
 /** Strips everything but digits and keeps at most one decimal point. */
@@ -27,19 +30,44 @@ export function parseOptionalNumber(text: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-export function NumberField({ label, value, onChangeText }: NumberFieldProps) {
+/** Applies a +/- stepper delta to a NumberField's raw string value, clamped to [min, max]. Empty/invalid input steps from 0. */
+export function stepValue(value: string, delta: number, min = -Infinity, max = Infinity): string {
+  const current = parseOptionalNumber(value) ?? 0;
+  const next = Math.min(max, Math.max(min, current + delta));
+  return String(next);
+}
+
+export function NumberField({ label, value, onChangeText, min, max, step = 1 }: NumberFieldProps) {
   return (
     <View>
       <Text className="mb-1.5 text-sm text-ink-muted">{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={(text) => onChangeText(sanitizeNumericInput(text))}
-        keyboardType="numeric"
-        placeholder="0"
-        placeholderTextColor={colors.inkFaint}
-        accessibilityLabel={label}
-        className="rounded-xl border border-border bg-surface-raised px-4 py-3.5 text-base text-ink"
-      />
+      <View className="flex-row items-center gap-2">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Decrease ${label}`}
+          hitSlop={8}
+          onPress={() => onChangeText(stepValue(value, -step, min, max))}
+          className="h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface-raised">
+          <Text className="text-lg text-ink-muted">−</Text>
+        </Pressable>
+        <TextInput
+          value={value}
+          onChangeText={(text) => onChangeText(sanitizeNumericInput(text))}
+          keyboardType="numeric"
+          placeholder="0"
+          placeholderTextColor={colors.inkFaint}
+          accessibilityLabel={label}
+          className="flex-1 rounded-xl border border-border bg-surface-raised px-2 py-3.5 text-center text-base text-ink"
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Increase ${label}`}
+          hitSlop={8}
+          onPress={() => onChangeText(stepValue(value, step, min, max))}
+          className="h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface-raised">
+          <Text className="text-lg text-ink-muted">+</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

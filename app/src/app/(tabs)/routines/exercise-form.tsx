@@ -114,18 +114,18 @@ export default function ExerciseFormScreen() {
         <View className="gap-4">
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <NumberField label="Weight (kg)" value={weight} onChangeText={setWeight} />
+              <NumberField label="Weight (kg)" value={weight} onChangeText={setWeight} min={0} step={2.5} />
             </View>
             <View className="flex-1">
-              <NumberField label="Sets" value={sets} onChangeText={setSets} />
+              <NumberField label="Sets" value={sets} onChangeText={setSets} min={1} />
             </View>
           </View>
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <NumberField label="Reps min" value={repsMin} onChangeText={setRepsMin} />
+              <NumberField label="Reps min" value={repsMin} onChangeText={setRepsMin} min={0} />
             </View>
             <View className="flex-1">
-              <NumberField label="Reps max" value={repsMax} onChangeText={setRepsMax} />
+              <NumberField label="Reps max" value={repsMax} onChangeText={setRepsMax} min={0} />
             </View>
           </View>
           <View>

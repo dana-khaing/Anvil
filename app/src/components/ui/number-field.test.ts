@@ -1,4 +1,4 @@
-import { parseOptionalNumber, sanitizeNumericInput } from './number-field';
+import { parseOptionalNumber, sanitizeNumericInput, stepValue } from './number-field';
 
 describe('sanitizeNumericInput', () => {
   it('strips non-numeric characters', () => {
@@ -37,5 +37,31 @@ describe('parseOptionalNumber', () => {
 
   it('returns null instead of NaN for a lone decimal point', () => {
     expect(parseOptionalNumber('.')).toBeNull();
+  });
+});
+
+describe('stepValue', () => {
+  it('increments a numeric value', () => {
+    expect(stepValue('8', 1)).toBe('9');
+  });
+
+  it('decrements a numeric value', () => {
+    expect(stepValue('8', -1)).toBe('7');
+  });
+
+  it('treats empty input as starting from 0', () => {
+    expect(stepValue('', 1)).toBe('1');
+  });
+
+  it('clamps to the minimum', () => {
+    expect(stepValue('0', -1, 0)).toBe('0');
+  });
+
+  it('clamps to the maximum', () => {
+    expect(stepValue('12', 1, 0, 12)).toBe('12');
+  });
+
+  it('supports a step other than 1', () => {
+    expect(stepValue('60', 2.5)).toBe('62.5');
   });
 });
