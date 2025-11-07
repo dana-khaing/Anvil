@@ -69,9 +69,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   send: async (content, context) => {
     const trimmed = content.trim();
     if (!trimmed || get().sending) return;
+    // Set before the first await, not after -- otherwise a second send()
+    // can pass the guard above during that async gap and fire a duplicate
+    // message + concurrent request (a fast double-tap on "Send").
+    set({ sending: true, error: null });
 
     const [userMessage] = await db.insert(chatMessages).values({ role: 'user', content: trimmed }).returning();
-    set({ messages: [...get().messages, userMessage], sending: true, error: null });
+    set({ messages: [...get().messages, userMessage] });
 
     const history = get().messages.map((message) => ({ role: message.role, content: message.content }));
 
