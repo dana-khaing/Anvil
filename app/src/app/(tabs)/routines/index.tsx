@@ -52,16 +52,18 @@ export default function RoutinesScreen() {
           data={days}
           keyExtractor={(day) => String(day.id)}
           contentContainerStyle={{ gap: 12 }}
-          renderItem={({ item: day }) => (
+          renderItem={({ item: day }) => {
+            const groups = parseMuscleGroups(day.muscleGroups);
+            return (
             <Pressable accessibilityRole="button" onPress={() => router.push(`/routines/${day.id}`)}>
               <Card>
                 <Text className="text-lg font-semibold text-ink">{day.label}</Text>
                 <Text className="mt-1 text-sm text-ink-muted">
                   {day.exercises.length} exercise{day.exercises.length === 1 ? '' : 's'}
                 </Text>
-                {parseMuscleGroups(day.muscleGroups).length > 0 && (
+                {groups.length > 0 && (
                   <View className="mt-2 flex-row flex-wrap gap-1.5">
-                    {parseMuscleGroups(day.muscleGroups).map((group) => (
+                    {groups.map((group) => (
                       <View key={group} className="rounded-full bg-pulse-500/15 px-2.5 py-1">
                         <Text className="text-xs text-pulse-400">{group.replace('_', ' ')}</Text>
                       </View>
@@ -70,7 +72,8 @@ export default function RoutinesScreen() {
                 )}
               </Card>
             </Pressable>
-          )}
+            );
+          }}
           ListFooterComponent={
             days.length > 0 && !addingDay ? (
               <Pressable

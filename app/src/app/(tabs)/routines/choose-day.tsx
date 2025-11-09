@@ -33,7 +33,13 @@ export default function ChooseDayScreen() {
   }, [loaded, days]);
 
   const pickDay = (day: DayWithExercises) => {
-    const conflict = recentCompletions ? findRestConflict(day, recentCompletions, REST_WINDOW_HOURS, new Date()) : null;
+    // recentCompletions loads asynchronously and starts null -- without this
+    // guard, tapping a day in that brief window would fall through to
+    // `conflict === null` and skip the rest check entirely rather than
+    // waiting to actually know.
+    if (recentCompletions === null) return;
+
+    const conflict = findRestConflict(day, recentCompletions, REST_WINDOW_HOURS, new Date());
 
     if (!conflict) {
       startSession(day);
@@ -64,18 +70,27 @@ export default function ChooseDayScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 px-6 pb-6">
         <ScreenHeader title="Choose a day" />
+        {recentCompletions === null && (
+          <Text className="mb-3 text-sm text-ink-faint">Checking rest status…</Text>
+        )}
         <FlatList
           data={days}
           keyExtractor={(day) => String(day.id)}
           contentContainerStyle={{ gap: 10 }}
           renderItem={({ item: day }) => {
-            const conflict = recentCompletions
-              ? findRestConflict(day, recentCompletions, REST_WINDOW_HOURS, new Date())
-              : null;
+            const conflict =
+              recentCompletions === null
+                ? null
+                : findRestConflict(day, recentCompletions, REST_WINDOW_HOURS, new Date());
             const groups = parseMuscleGroups(day.muscleGroups);
 
             return (
-              <Pressable accessibilityRole="button" onPress={() => pickDay(day)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: recentCompletions === null }}
+                disabled={recentCompletions === null}
+                onPress={() => pickDay(day)}
+                className={recentCompletions === null ? 'opacity-40' : undefined}>
                 <Card className="gap-1.5">
                   <Text className="text-lg font-semibold text-ink">{day.label}</Text>
                   <Text className="text-sm text-ink-muted">
