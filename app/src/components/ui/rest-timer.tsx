@@ -36,7 +36,7 @@ export function RestTimer({ onComplete }: RestTimerProps) {
   }, [secondsRemaining]);
 
   return (
-    <View className="items-center gap-3 rounded-2xl border border-border bg-surface-raised p-6">
+    <View className="items-center gap-3">
       <Text className="text-xs uppercase tracking-wide text-ink-faint">Rest</Text>
       <Text
         className="text-4xl font-semibold tabular-nums text-ink"
