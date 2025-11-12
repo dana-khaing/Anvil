@@ -33,7 +33,7 @@ describe('OnboardingScreen', () => {
   it('walks through the full flow and creates a routine on finish', async () => {
     await render(<OnboardingScreen />);
 
-    expect(screen.getByText('Welcome to PulseForge')).toBeTruthy();
+    expect(screen.getByText('Welcome to Anvil')).toBeTruthy();
     await fireEvent.press(screen.getByText('Get Started'));
 
     expect(screen.getByText(/Height & weight/)).toBeTruthy();
