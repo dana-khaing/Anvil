@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "PulseForge",
-    "slug": "pulseforge",
+    "name": "Anvil",
+    "slug": "anvil",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pulseforge",
+    "scheme": "anvil",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#05060B",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.danakhaing.pulseforge"
+      "bundleIdentifier": "com.danakhaing.anvil"
     },
     "android": {
-      "package": "com.danakhaing.pulseforge",
+      "package": "com.danakhaing.anvil",
       "adaptiveIcon": {
         "backgroundColor": "#05060B",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -1,5 +1,5 @@
 {
-  "name": "pulseforge",
+  "name": "anvil",
   "version": "0.0.0",
   "private": true,
   "description": "Offline-first, futuristic workout tracker with AI coaching and streak-based motivation",
@@ -12,9 +12,9 @@
     "onlyBuiltDependencies": ["unrs-resolver", "@shopify/react-native-skia", "esbuild"]
   },
   "scripts": {
-    "typecheck": "pnpm --filter @pulseforge/app exec tsc --noEmit",
-    "lint": "pnpm --filter @pulseforge/app lint",
-    "test": "pnpm --filter @pulseforge/app test",
-    "start": "pnpm --filter @pulseforge/app start"
+    "typecheck": "pnpm --filter @anvil/app exec tsc --noEmit",
+    "lint": "pnpm --filter @anvil/app lint",
+    "test": "pnpm --filter @anvil/app test",
+    "start": "pnpm --filter @anvil/app start"
   }
 }
