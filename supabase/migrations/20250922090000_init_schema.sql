@@ -1,4 +1,4 @@
--- PulseForge cloud schema. Mirrors the local SQLite schema (app/src/db/schema.ts)
+-- Anvil cloud schema. Mirrors the local SQLite schema (app/src/db/schema.ts)
 -- for the tables that sync: profiles, routines, routine_days, routine_exercises,
 -- workout_sessions, set_logs. The exercise catalog is static and ships in the app
 -- itself, so it isn't represented here.
