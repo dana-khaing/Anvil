@@ -1,5 +1,5 @@
-import { type DayWithExercises, type Routine } from './routines-store';
-import { buildRoutineContext } from './chat-store';
+import { type DayWithExercises, type Exercise, type Routine } from './routines-store';
+import { buildExerciseCatalogContext, buildRoutineContext } from './chat-store';
 import { type Profile } from './profile-store';
 
 jest.mock('@/db/client', () => ({ db: {} }));
@@ -86,9 +86,36 @@ describe('buildRoutineContext', () => {
     expect(context).toContain('Barbell Bench Press (60kg, 8-10 reps, 3 sets)');
   });
 
+  it('includes each day\'s stable id, for the coach to reference in a routine-change proposal', () => {
+    const days = [makeDay('D1 - Chest and Tricep', [benchPress])];
+    const context = buildRoutineContext(profile, routine, days);
+    expect(context).toContain('D1 - Chest and Tricep (day id 1):');
+  });
+
   it('notes an empty day rather than showing a blank line', () => {
     const days = [makeDay('D2 - Rest', [])];
     const context = buildRoutineContext(profile, routine, days);
-    expect(context).toContain('D2 - Rest: no exercises yet');
+    expect(context).toContain('D2 - Rest (day id 1): no exercises yet');
+  });
+});
+
+describe('buildExerciseCatalogContext', () => {
+  const squat: Exercise = {
+    id: 'barbell-back-squat',
+    name: 'Barbell Back Squat',
+    equipment: 'barbell',
+    muscleGroup: 'quads',
+    defaultVideoUrl: null,
+    alternativeIds: '[]',
+  };
+
+  it('groups exercise names by muscle group', () => {
+    const context = buildExerciseCatalogContext([benchPress.exercise, squat]);
+    expect(context).toContain('chest: Barbell Bench Press');
+    expect(context).toContain('quads: Barbell Back Squat');
+  });
+
+  it('states plainly when the catalog has not loaded yet', () => {
+    expect(buildExerciseCatalogContext([])).toBe('Exercise catalog: unavailable.');
   });
 });

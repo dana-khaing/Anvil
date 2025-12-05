@@ -5,7 +5,7 @@ import { db } from '@/db/client';
 import { chatMessages } from '@/db/schema';
 import { supabase } from '@/db/supabase-client';
 import { type Profile } from '@/stores/profile-store';
-import { type DayWithExercises, type Routine } from '@/stores/routines-store';
+import { type DayWithExercises, type Exercise, type Routine } from '@/stores/routines-store';
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
@@ -40,9 +40,32 @@ export function buildRoutineContext(
         return `${entry.exercise.name} (${weight}, ${entry.targetRepsMin ?? '?'}-${entry.targetRepsMax ?? '?'} reps, ${entry.targetSets} sets)`;
       })
       .join('; ');
-    lines.push(`${day.label}: ${exerciseList || 'no exercises yet'}`);
+    lines.push(`${day.label} (day id ${day.id}): ${exerciseList || 'no exercises yet'}`);
   }
 
+  return lines.join('\n');
+}
+
+/**
+ * Plain-text list of the exercise catalog, grouped by muscle group, sent
+ * alongside buildRoutineContext so the coach has a closed vocabulary to
+ * propose exercises from -- picking a name outside this list is what
+ * resolveExerciseName (chat-actions.ts) will reject when the user confirms.
+ */
+export function buildExerciseCatalogContext(catalog: Exercise[]): string {
+  if (catalog.length === 0) return 'Exercise catalog: unavailable.';
+
+  const byGroup = new Map<string, string[]>();
+  for (const exercise of catalog) {
+    const group = byGroup.get(exercise.muscleGroup) ?? [];
+    group.push(exercise.name);
+    byGroup.set(exercise.muscleGroup, group);
+  }
+
+  const lines = ['Available exercises (use these exact names when proposing a routine change):'];
+  for (const [group, names] of byGroup) {
+    lines.push(`${group}: ${names.join(', ')}`);
+  }
   return lines.join('\n');
 }
 
