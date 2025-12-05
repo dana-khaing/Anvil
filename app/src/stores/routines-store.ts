@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
+import { createDayWithExercises } from '@/db/routines';
 import { exercises, routineDays, routineExercises, routines } from '@/db/schema';
 
 export type Routine = typeof routines.$inferSelect;
@@ -38,6 +39,7 @@ type RoutinesState = {
   load: () => Promise<void>;
   ensureActiveRoutine: () => Promise<Routine>;
   addDay: (label: string, muscleGroups: string[]) => Promise<void>;
+  addDayWithExercises: (label: string, muscleGroups: string[], exercises: NewExerciseInput[]) => Promise<void>;
   deleteDay: (dayId: number) => Promise<void>;
   addExercise: (dayId: number, input: NewExerciseInput) => Promise<void>;
   updateExercise: (id: number, input: Partial<NewExerciseInput>) => Promise<void>;
@@ -103,6 +105,13 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
       dayOrder: nextOrder,
       muscleGroups: JSON.stringify(muscleGroups),
     });
+    await get().load();
+  },
+
+  addDayWithExercises: async (label, muscleGroups, exercises) => {
+    const routine = await get().ensureActiveRoutine();
+    const nextOrder = get().days.length;
+    await createDayWithExercises(routine.id, label, nextOrder, muscleGroups, exercises);
     await get().load();
   },
 
