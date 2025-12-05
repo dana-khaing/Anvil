@@ -29,6 +29,13 @@
       "when": 1786907098174,
       "tag": "0003_fluffy_machine_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787183901234,
+      "tag": "0004_clumsy_photon",
+      "breakpoints": true
     }
   ]
 }
