@@ -83,7 +83,7 @@ describe('buildRoutineContext', () => {
     expect(context).toContain('Push Pull Legs');
     expect(context).toContain('push_pull_legs split');
     expect(context).toContain('D1 - Chest and Tricep');
-    expect(context).toContain('Barbell Bench Press (60kg, 8-10 reps, 3 sets)');
+    expect(context).toContain('Barbell Bench Press (routine exercise id 1) (60kg, 8-10 reps, 3 sets)');
   });
 
   it('includes each day\'s stable id, for the coach to reference in a routine-change proposal', () => {
