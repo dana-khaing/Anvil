@@ -1,11 +1,13 @@
-import { asc } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
 import { chatMessages } from '@/db/schema';
 import { supabase } from '@/db/supabase-client';
+import { executeAction, type AiAction } from '@/stores/chat-actions';
+import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { type Profile } from '@/stores/profile-store';
-import { type DayWithExercises, type Exercise, type Routine } from '@/stores/routines-store';
+import { type DayWithExercises, type Exercise, type Routine, useRoutinesStore } from '@/stores/routines-store';
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
@@ -69,6 +71,18 @@ export function buildExerciseCatalogContext(catalog: Exercise[]): string {
   return lines.join('\n');
 }
 
+/** Safely reads a chat message's actionPayload JSON, tolerating malformed or unrecognized data. */
+export function parseActionPayload(raw: string | null): AiAction | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null || typeof parsed.kind !== 'string') return null;
+    return parsed as AiAction;
+  } catch {
+    return null;
+  }
+}
+
 type ChatState = {
   messages: ChatMessage[];
   loaded: boolean;
@@ -76,6 +90,8 @@ type ChatState = {
   error: string | null;
   load: () => Promise<void>;
   send: (content: string, context: string) => Promise<void>;
+  confirmAction: (messageId: number) => Promise<void>;
+  declineAction: (messageId: number) => Promise<void>;
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -102,15 +118,81 @@ export const useChatStore = create<ChatState>((set, get) => ({
       body: { messages: history, context },
     });
 
-    if (error || !data?.reply) {
+    if (error || (!data?.reply && !data?.action)) {
       set({ sending: false, error: "Couldn't reach the coach — check your connection and try again." });
       return;
     }
 
+    const action: AiAction | null = data.action ?? null;
     const [assistantMessage] = await db
       .insert(chatMessages)
-      .values({ role: 'assistant', content: data.reply })
+      .values({
+        role: 'assistant',
+        content: data.reply ?? '(proposed a change to your routine)',
+        actionPayload: action ? JSON.stringify(action) : null,
+        actionStatus: action ? 'pending' : null,
+      })
       .returning();
     set({ messages: [...get().messages, assistantMessage], sending: false });
+  },
+
+  confirmAction: async (messageId) => {
+    const message = get().messages.find((item) => item.id === messageId);
+    const action = message ? parseActionPayload(message.actionPayload) : null;
+
+    if (!action) {
+      await db.update(chatMessages).set({ actionStatus: 'failed' }).where(eq(chatMessages.id, messageId));
+      const [failure] = await db
+        .insert(chatMessages)
+        .values({ role: 'assistant', content: "Sorry, I couldn't read that proposed change." })
+        .returning();
+      set({
+        messages: [
+          ...get().messages.map((item) => (item.id === messageId ? { ...item, actionStatus: 'failed' as const } : item)),
+          failure,
+        ],
+      });
+      return;
+    }
+
+    try {
+      const routines = useRoutinesStore.getState();
+      const { summary } = await executeAction(action, routines, useExerciseLibraryStore.getState().exercises);
+      await db.update(chatMessages).set({ actionStatus: 'confirmed' }).where(eq(chatMessages.id, messageId));
+      const [followUp] = await db
+        .insert(chatMessages)
+        .values({ role: 'assistant', content: `Done: ${summary}` })
+        .returning();
+      set({
+        messages: [
+          ...get().messages.map((item) => (item.id === messageId ? { ...item, actionStatus: 'confirmed' as const } : item)),
+          followUp,
+        ],
+      });
+    } catch (thrown) {
+      const reason = thrown instanceof Error ? thrown.message : 'Something went wrong making that change.';
+      await db.update(chatMessages).set({ actionStatus: 'failed' }).where(eq(chatMessages.id, messageId));
+      const [failure] = await db.insert(chatMessages).values({ role: 'assistant', content: reason }).returning();
+      set({
+        messages: [
+          ...get().messages.map((item) => (item.id === messageId ? { ...item, actionStatus: 'failed' as const } : item)),
+          failure,
+        ],
+      });
+    }
+  },
+
+  declineAction: async (messageId) => {
+    await db.update(chatMessages).set({ actionStatus: 'declined' }).where(eq(chatMessages.id, messageId));
+    const [followUp] = await db
+      .insert(chatMessages)
+      .values({ role: 'assistant', content: "Okay, I won't make that change." })
+      .returning();
+    set({
+      messages: [
+        ...get().messages.map((item) => (item.id === messageId ? { ...item, actionStatus: 'declined' as const } : item)),
+        followUp,
+      ],
+    });
   },
 }));
