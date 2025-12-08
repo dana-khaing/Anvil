@@ -1035,3 +1035,131 @@ template (`D1 - Chest and Tricep`, `D2 - Back and Bicep`, ...) in
 `seed-data/templates.ts` is untouched and intentional. Replaced the
 empty-state copy with a generic instruction and the placeholder with
 `"e.g. Push Day"`.
+
+## 2025-11-13 — Catch up DIARY and README through the post-Day-17 work
+
+Housekeeping: this diary hadn't been updated since the Oct 23 chat-input
+fix, and README still read "Day 17 of 17" with none of the redesign,
+per-set logging, muscle-group tracking, or recent fixes reflected. Wrote
+the entries covering that gap (the ones immediately above this one) and
+refreshed README's Status and Features sections to match current
+reality.
+
+## 2025-11-14 — Decorate README with header, badges, and architecture diagram
+
+Restructured README.md to match the format used across other active
+projects: a centered app-icon header, status/platform/license badges, a
+"What Anvil is" summary, a product-principles section grounded in this
+project's own established practices (offline-first, honest scope cuts,
+accessibility, real verification), a Mermaid architecture diagram, and
+a short delivery-model note. Content unchanged from the prior
+status/features/stack sections, just reorganized under clearer headers.
+
+## 2025-11-15 — Recolor the app icon background from blue to midnight black
+
+User feedback: the app icon's blue background looked out of place next
+to the app's actual dark theme (`#05060B` everywhere else — splash
+screen, Android adaptive-icon background). Recolored the icon
+background to that same `#05060B` via a luminance-based gradient map on
+the flattened PNG (no accessible layered source existed for the raster
+icon), keeping the white "A" mark and grid-texture detail intact.
+Applied to both `icon.png` and the iOS Icon Composer source
+(`assets/expo.icon/icon.json`'s fill), which is what Xcode 16+ actually
+builds the App Store icon from — editing only the flat PNG would have
+left the real build icon still blue. Scoped to the icon actually shown
+in the report: the Android adaptive icon and web favicon use a
+different, pre-existing style (a blue mark on a pale background) and
+were left untouched.
+
+## 2025-12-05 — AI coach, part 1: local plumbing for proposed routine changes
+
+User request: let the coach create a daily training routine and add or
+manage exercises when asked, not just answer questions. Shipped in 3
+PRs (this diary entry covers all three); this first one is pure local
+groundwork with no AI/network behavior change at all, so it could be
+fully tested in isolation before the riskier edge-function piece.
+
+`chat_messages` gained nullable `actionPayload`/`actionStatus` columns
+(plain `ALTER TABLE ADD COLUMN`, no `__new_<table>` rebuild needed --
+neither column has a non-constant default, so the Day 10 migration bug
+doesn't apply here). New `chat-actions.ts` defines the 5 routine
+changes the coach will be allowed to propose (create a day, add
+exercises, update or delete an exercise, delete a day) as a closed
+`AiAction` union, plus `resolveExerciseName` (matches an AI-supplied
+name against the real exercise catalog, never guessing on ambiguity --
+0 or >1 candidates both fail with a specific reason) and `executeAction`
+(resolves every exercise name up front, before any store write, so one
+bad name in a multi-exercise action fails atomically with no partial
+write). New `createDayWithExercises` DB helper mirrors
+`createRoutineFromTemplate`'s existing FK-safe bulk-insert order rather
+than reinventing it; `buildRoutineContext` now includes each day's
+stable id (a new `buildExerciseCatalogContext` gives the coach a closed
+vocabulary of real exercise names) so a later action can target an
+existing day precisely instead of by label.
+
+Architectural decision worth naming: the AI never writes to any
+database directly. This app is local-first and the chat edge function
+has no authenticated user identity at all (publishable-key auth only) --
+it never had DB write access, and giving it one would be a real
+departure from how every other feature already separates the
+network/AI layer from the local Drizzle layer. The AI proposes a
+structured action; the existing local stores execute it once the user
+confirms.
+
+## 2025-12-06 — AI coach, part 2: Gemini tool-calling
+
+Added a `tools` array (5 function declarations mirroring part 1's
+`AiAction` kinds) to the Interactions API request, and parse a new
+`function_call` step from the response alongside the existing
+`model_output` handling -- mirrored by hand into the edge function's
+own types since this is a separate Deno runtime with no access to app
+code, and validated field-by-field on the way in, failing closed to
+`null` on any shape mismatch rather than trusting Gemini's arguments
+verbatim. Response contract becomes `{reply, action}`, either of which
+may be null but not both.
+
+Deliberately no round-trip back to Gemini for a function result:
+execution only happens after a separate user-confirmation tap (part 3),
+so there's no point in the request cycle to send one back
+synchronously. The next turn's continuity comes for free once the
+client inserts a normal assistant message reporting the outcome -- it
+replays into the next call's history exactly like every other message
+already does, no new plumbing required.
+
+Given this API's history (the wrong-endpoint incident from Day 13),
+didn't trust an assumed shape for the tool-calling fields either --
+fetched the live reference during implementation and round-trip
+`curl`-tested the deployed function with real prompts for `create_day`,
+`update_exercise`, `delete_day`, and a plain advisory question with no
+action, before merging. Confirmed the existing pinned `gemini-3.6-flash`
+supports tool-calling; no model change needed. Live testing also caught
+a real gap part 1 missed: `buildRoutineContext` exposed a day's id but
+never an exercise's own `routine_exercise` id, so `update_exercise`
+had nothing concrete to target -- fixed in the same PR once the live
+test surfaced it.
+
+## 2025-12-07 — AI coach, part 3: confirm/decline chat UI
+
+The client-facing half. `send()` now persists `actionPayload`/
+`actionStatus` on the assistant row whenever the edge function returns
+a proposed action, falling back to a placeholder message on a
+function-call-only turn with no reply text. New `confirmAction`
+resolves and executes the action against the routines store (via the
+same cross-store `getState()` pattern `workout-session-store.ts`
+already uses for `useProgressStore`/`useNotificationsStore`), then
+marks the message confirmed or failed and appends a "Done: ..." or
+error follow-up; `declineAction` marks it declined with a short
+follow-up. In the chat screen, `MessageBubble` renders a confirmation
+card -- summary plus Confirm/Decline -- while a message's action is
+pending, a small status line once resolved, and falls back to the
+existing plain-text bubble on any corrupt or unrecognized payload. A
+local busy flag stops a double-tap from double-executing.
+
+Verified: typecheck, lint, and the full suite (125 passing, including
+new coverage for `resolveExerciseName`/`describeAction`/`executeAction`
+and `parseActionPayload`); applied the full migration set to a fresh
+SQLite DB and round-tripped a fixture pending-action row. As with every
+other UI feature in this project, the actual Confirm/Decline tap flow
+on a real device is a named manual-QA gap -- this environment has never
+had simulator tap automation -- not something silently claimed as fully
+verified.
