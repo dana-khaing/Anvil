@@ -1163,3 +1163,17 @@ other UI feature in this project, the actual Confirm/Decline tap flow
 on a real device is a named manual-QA gap -- this environment has never
 had simulator tap automation -- not something silently claimed as fully
 verified.
+
+## 2025-12-08 — Pin the supported Node.js toolchain
+
+The next maintenance pass started with a reproducibility problem rather than
+an app feature: the repository claimed any Node 20 release worked, but Expo
+SDK 57's CLI rejects Node 20.11.0 and crashed in `expo lint` while loading the
+environment. Node 20.19.4 was already installed locally and runs the full
+toolchain successfully, so `.nvmrc`, the root `engines` constraint, CI, and
+the setup instructions now agree on that exact minimum. CI reads `.nvmrc`
+instead of carrying a second version declaration that could drift later.
+
+This deliberately changes no application behavior. It makes local validation
+and GitHub validation start from the same supported runtime before the SDK 57
+dependency-alignment work begins.
