@@ -4,6 +4,8 @@ import { View } from 'react-native';
 
 import { colors } from '@/constants/colors';
 
+import { getWeightChartCoordinates } from './weight-chart-path';
+
 export type WeightChartPoint = { date: string; weightKg: number };
 
 export type WeightChartProps = {
@@ -17,23 +19,16 @@ export type WeightChartProps = {
 /** A minimal line chart for weight-over-time -- no axes/labels, just the trend line. */
 export function WeightChart({ points, width = 280, height = 120, accessibilityLabel }: WeightChartProps) {
   const path = useMemo(() => {
-    const drawn = Skia.Path.Make();
-    if (points.length < 2) return drawn;
+    const coordinates = getWeightChartCoordinates(points, width, height);
+    if (coordinates.length === 0) return Skia.Path.Make();
 
-    const weights = points.map((point) => point.weightKg);
-    const min = Math.min(...weights);
-    const max = Math.max(...weights);
-    const range = max - min || 1;
-    const paddingY = 12;
-
-    points.forEach((point, index) => {
-      const x = (index / (points.length - 1)) * width;
-      const y = height - paddingY - ((point.weightKg - min) / range) * (height - paddingY * 2);
-      if (index === 0) drawn.moveTo(x, y);
-      else drawn.lineTo(x, y);
+    const builder = Skia.PathBuilder.Make();
+    coordinates.forEach(({ x, y }, index) => {
+      if (index === 0) builder.moveTo(x, y);
+      else builder.lineTo(x, y);
     });
 
-    return drawn;
+    return builder.detach();
   }, [points, width, height]);
 
   return (
