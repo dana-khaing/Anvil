@@ -1214,3 +1214,17 @@ insufficient datasets. This verifies the coordinate bounds without requiring a
 native canvas in Jest. Typecheck and lint also pass; rendering the chart on an
 iOS device remains the manual visual check because the current environment has
 no simulator tap automation.
+
+## 2025-12-11 — Close the chat double-send race
+
+The chat store checked its `sending` flag before accepting a message, but did
+not set the flag until after inserting the user message. A fast second tap in
+that asynchronous gap could therefore insert the same text twice and launch
+two coach requests. `send()` now claims the flag synchronously before its first
+database operation, so every later call sees the request already in flight.
+
+Added a store-level regression test that holds the first insert unresolved,
+calls `send()` again, and verifies only one insert and one edge-function invoke
+occur. This covers the timing condition directly instead of relying on button
+disablement in the screen, which happens only after React observes the store
+update.
