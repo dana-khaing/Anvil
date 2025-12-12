@@ -39,6 +39,120 @@ export type ProposedExercise = {
   targetSets: number;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
+}
+
+function isNonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function isNullableNonNegativeNumber(value: unknown): value is number | null {
+  return value === null || isNonNegativeNumber(value);
+}
+
+function isNullableNonNegativeInteger(value: unknown): value is number | null {
+  return value === null || (isNonNegativeNumber(value) && Number.isInteger(value));
+}
+
+function parseProposedExercise(value: unknown): ProposedExercise | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.exerciseName !== 'string' || !value.exerciseName.trim()) return null;
+  if (!isNullableNonNegativeNumber(value.targetWeightKg)) return null;
+  if (!isNullableNonNegativeInteger(value.targetRepsMin)) return null;
+  if (!isNullableNonNegativeInteger(value.targetRepsMax)) return null;
+  if (value.targetRepsMin !== null && value.targetRepsMax !== null && value.targetRepsMin > value.targetRepsMax) {
+    return null;
+  }
+  if (!isPositiveInteger(value.targetSets)) return null;
+
+  return {
+    exerciseName: value.exerciseName,
+    targetWeightKg: value.targetWeightKg,
+    targetRepsMin: value.targetRepsMin,
+    targetRepsMax: value.targetRepsMax,
+    targetSets: value.targetSets,
+  };
+}
+
+function parseExerciseList(value: unknown): ProposedExercise[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const exercises = value.map(parseProposedExercise);
+  return exercises.some((exercise) => exercise === null) ? null : (exercises as ProposedExercise[]);
+}
+
+/** Validates an untrusted edge-function or persisted value against the complete action union. */
+export function parseAiAction(value: unknown): AiAction | null {
+  if (!isRecord(value) || typeof value.kind !== 'string') return null;
+
+  switch (value.kind) {
+    case 'create_day': {
+      const exercises = parseExerciseList(value.exercises);
+      if (typeof value.label !== 'string' || !value.label.trim() || !exercises) return null;
+      if (!Array.isArray(value.muscleGroups) || !value.muscleGroups.every((group) => typeof group === 'string' && group.trim())) {
+        return null;
+      }
+      return { kind: value.kind, label: value.label, muscleGroups: value.muscleGroups as string[], exercises };
+    }
+    case 'add_exercises': {
+      const exercises = parseExerciseList(value.exercises);
+      return isPositiveInteger(value.dayId) && exercises ? { kind: value.kind, dayId: value.dayId, exercises } : null;
+    }
+    case 'update_exercise': {
+      if (!isPositiveInteger(value.routineExerciseId)) return null;
+      const action: Extract<AiAction, { kind: 'update_exercise' }> = {
+        kind: value.kind,
+        routineExerciseId: value.routineExerciseId,
+      };
+      let hasChange = false;
+
+      if ('targetWeightKg' in value) {
+        if (!isNullableNonNegativeNumber(value.targetWeightKg)) return null;
+        action.targetWeightKg = value.targetWeightKg;
+        hasChange = true;
+      }
+      if ('targetRepsMin' in value) {
+        if (!isNullableNonNegativeInteger(value.targetRepsMin)) return null;
+        action.targetRepsMin = value.targetRepsMin;
+        hasChange = true;
+      }
+      if ('targetRepsMax' in value) {
+        if (!isNullableNonNegativeInteger(value.targetRepsMax)) return null;
+        action.targetRepsMax = value.targetRepsMax;
+        hasChange = true;
+      }
+      if (
+        action.targetRepsMin !== undefined &&
+        action.targetRepsMin !== null &&
+        action.targetRepsMax !== undefined &&
+        action.targetRepsMax !== null &&
+        action.targetRepsMin > action.targetRepsMax
+      ) {
+        return null;
+      }
+      if ('targetSets' in value) {
+        if (!isPositiveInteger(value.targetSets)) return null;
+        action.targetSets = value.targetSets;
+        hasChange = true;
+      }
+
+      return hasChange ? action : null;
+    }
+    case 'delete_exercise':
+      return isPositiveInteger(value.routineExerciseId)
+        ? { kind: value.kind, routineExerciseId: value.routineExerciseId }
+        : null;
+    case 'delete_day':
+      return isPositiveInteger(value.dayId) ? { kind: value.kind, dayId: value.dayId } : null;
+    default:
+      return null;
+  }
+}
+
 /** The subset of routines-store actions executeAction needs, so it never imports the store directly. */
 export type RoutinesActions = {
   addDayWithExercises: (label: string, muscleGroups: string[], exercises: NewExerciseInput[]) => Promise<void>;

@@ -142,6 +142,10 @@ describe('parseActionPayload', () => {
     const action = { kind: 'delete_day', dayId: 3 };
     expect(parseActionPayload(JSON.stringify(action))).toEqual(action);
   });
+
+  it('returns null when a known action has invalid fields', () => {
+    expect(parseActionPayload(JSON.stringify({ kind: 'delete_day', dayId: 'three' }))).toBeNull();
+  });
 });
 
 describe('send', () => {
@@ -196,6 +200,47 @@ describe('send', () => {
       messages: [userMessage, assistantMessage],
       sending: false,
       error: null,
+    });
+  });
+
+  it('does not persist a malformed action returned beside a valid reply', async () => {
+    const userMessage = {
+      id: 1,
+      role: 'user' as const,
+      content: 'Update my first day',
+      actionPayload: null,
+      actionStatus: null,
+      createdAt: '2025-12-12 09:00:00',
+    };
+    const assistantMessage = {
+      id: 2,
+      role: 'assistant' as const,
+      content: 'I could not form that change safely.',
+      actionPayload: null,
+      actionStatus: null,
+      createdAt: '2025-12-12 09:00:01',
+    };
+    const assistantValues = jest
+      .fn()
+      .mockReturnValue({ returning: jest.fn().mockResolvedValue([assistantMessage]) });
+
+    mockDb.insert
+      .mockReturnValueOnce({
+        values: jest.fn().mockReturnValue({ returning: jest.fn().mockResolvedValue([userMessage]) }),
+      })
+      .mockReturnValueOnce({ values: assistantValues });
+    mockInvoke.mockResolvedValue({
+      data: { reply: assistantMessage.content, action: { kind: 'delete_day', dayId: 'first' } },
+      error: null,
+    });
+
+    await useChatStore.getState().send(userMessage.content, 'routine context');
+
+    expect(assistantValues).toHaveBeenCalledWith({
+      role: 'assistant',
+      content: assistantMessage.content,
+      actionPayload: null,
+      actionStatus: null,
     });
   });
 });

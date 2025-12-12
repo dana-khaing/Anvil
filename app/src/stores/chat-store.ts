@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { db } from '@/db/client';
 import { chatMessages } from '@/db/schema';
 import { supabase } from '@/db/supabase-client';
-import { executeAction, type AiAction } from '@/stores/chat-actions';
+import { executeAction, parseAiAction, type AiAction } from '@/stores/chat-actions';
 import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { type Profile } from '@/stores/profile-store';
 import { type DayWithExercises, type Exercise, type Routine, useRoutinesStore } from '@/stores/routines-store';
@@ -75,9 +75,7 @@ export function buildExerciseCatalogContext(catalog: Exercise[]): string {
 export function parseActionPayload(raw: string | null): AiAction | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null || typeof parsed.kind !== 'string') return null;
-    return parsed as AiAction;
+    return parseAiAction(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -119,17 +117,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       body: { messages: history, context },
     });
 
-    if (error || (!data?.reply && !data?.action)) {
+    const reply = typeof data?.reply === 'string' && data.reply.trim() ? data.reply : null;
+    const action = parseAiAction(data?.action);
+
+    if (error || (!reply && !action)) {
       set({ sending: false, error: "Couldn't reach the coach — check your connection and try again." });
       return;
     }
 
-    const action: AiAction | null = data.action ?? null;
     const [assistantMessage] = await db
       .insert(chatMessages)
       .values({
         role: 'assistant',
-        content: data.reply ?? '(proposed a change to your routine)',
+        content: reply ?? '(proposed a change to your routine)',
         actionPayload: action ? JSON.stringify(action) : null,
         actionStatus: action ? 'pending' : null,
       })
