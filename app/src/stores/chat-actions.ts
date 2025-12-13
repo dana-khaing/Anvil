@@ -156,7 +156,7 @@ export function parseAiAction(value: unknown): AiAction | null {
 /** The subset of routines-store actions executeAction needs, so it never imports the store directly. */
 export type RoutinesActions = {
   addDayWithExercises: (label: string, muscleGroups: string[], exercises: NewExerciseInput[]) => Promise<void>;
-  addExercise: (dayId: number, input: NewExerciseInput) => Promise<void>;
+  addExercises: (dayId: number, inputs: NewExerciseInput[]) => Promise<void>;
   updateExercise: (id: number, input: Partial<NewExerciseInput>) => Promise<void>;
   deleteExercise: (id: number) => Promise<void>;
   deleteDay: (dayId: number) => Promise<void>;
@@ -255,9 +255,7 @@ export async function executeAction(
     }
     case 'add_exercises': {
       const inputs = resolveExerciseInputs(action.exercises, catalog);
-      for (const input of inputs) {
-        await routines.addExercise(action.dayId, input);
-      }
+      await routines.addExercises(action.dayId, inputs);
       return { summary: describeAction(action) };
     }
     case 'update_exercise': {
