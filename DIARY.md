@@ -1281,3 +1281,19 @@ Added a timing regression test that keeps the first sync promise unresolved,
 starts a second request, and verifies the underlying sync function is called
 once. After the first run resolves, the store returns to idle and records its
 completion time as before.
+
+## 2025-12-15 — Make auth initialization idempotent
+
+The root bootstrap can run its effect again during development or after a
+dependency transition. Each call to the auth store previously performed a new
+session lookup and registered another permanent Supabase auth listener. A
+simple post-initialization flag would still leave a race while `getSession()`
+was pending, so initialization now keeps a shared in-flight promise and later
+returns immediately once the first run marks the store checked.
+
+Added store tests that suspend the session lookup while two callers enter,
+then verify one lookup and one listener registration across overlapping and
+later calls. A second test invokes the captured listener and confirms future
+auth events still update the session normally. Failed initialization clears
+the shared promise without setting `checked`, allowing the next bootstrap pass
+to retry.
