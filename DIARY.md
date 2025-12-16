@@ -1297,3 +1297,15 @@ later calls. A second test invokes the captured listener and confirms future
 auth events still update the session normally. Failed initialization clears
 the shared promise without setting `checked`, allowing the next bootstrap pass
 to retry.
+
+## 2025-12-16 — Remove the unused external-link wrapper
+
+The Expo starter's `ExternalLink` component survived earlier template cleanup
+but has no imports anywhere in Anvil. Removed the component and, after checking
+there were no other browser-session calls, removed `expo-web-browser` and its
+config plugin as well. This drops one direct native dependency and its lockfile
+entries without changing any reachable screen.
+
+Expo's SDK compatibility check still reports every dependency up to date, and
+the project passes typecheck and lint with no remaining references to the
+component or package.
