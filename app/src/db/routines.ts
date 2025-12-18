@@ -1,9 +1,10 @@
+import { eq, sql } from 'drizzle-orm';
+
 import { db } from './client';
 import { routineDays, routineExercises, routines } from './schema';
 import { SPLIT_TEMPLATES, type SplitType } from './seed-data/templates';
 
-/** Mirrors routines-store.ts's NewExerciseInput -- kept local to avoid db/*.ts importing from stores/*.ts. */
-type NewExerciseInput = {
+export type NewExerciseInput = {
   exerciseId: string;
   targetWeightKg: number | null;
   targetRepsMin: number | null;
@@ -11,6 +12,40 @@ type NewExerciseInput = {
   targetSets: number;
   videoUrl: string | null;
 };
+
+function exerciseValues(routineDayId: number, orderIndex: number, exercise: NewExerciseInput) {
+  return {
+    routineDayId,
+    exerciseId: exercise.exerciseId,
+    orderIndex,
+    targetWeightKg: exercise.targetWeightKg,
+    targetRepsMin: exercise.targetRepsMin,
+    targetRepsMax: exercise.targetRepsMax,
+    targetSets: exercise.targetSets,
+    videoUrl: exercise.videoUrl,
+  };
+}
+
+export async function createDefaultRoutine() {
+  const [routine] = await db
+    .insert(routines)
+    .values({ name: 'My Routine', splitType: 'custom', isActive: true })
+    .returning();
+  return routine;
+}
+
+export async function createRoutineDay(routineId: number, label: string, dayOrder: number, muscleGroups: string[]) {
+  await db.insert(routineDays).values({
+    routineId,
+    label,
+    dayOrder,
+    muscleGroups: JSON.stringify(muscleGroups),
+  });
+}
+
+export async function deleteRoutineDay(dayId: number) {
+  await db.delete(routineDays).where(eq(routineDays.id, dayId));
+}
 
 /** Creates a routine + its days + its exercises from one of the built-in split templates. */
 export async function createRoutineFromTemplate(splitType: SplitType) {
@@ -69,14 +104,7 @@ export async function createDayWithExercises(
       tx.insert(routineExercises)
         .values(
           exercises.map((exercise, orderIndex) => ({
-            routineDayId: day.id,
-            exerciseId: exercise.exerciseId,
-            orderIndex,
-            targetWeightKg: exercise.targetWeightKg,
-            targetRepsMin: exercise.targetRepsMin,
-            targetRepsMax: exercise.targetRepsMax,
-            targetSets: exercise.targetSets,
-            videoUrl: exercise.videoUrl,
+            ...exerciseValues(day.id, orderIndex, exercise),
           }))
         )
         .run();
@@ -86,22 +114,28 @@ export async function createDayWithExercises(
   });
 }
 
+export async function addExerciseToDay(dayId: number, orderIndex: number, exercise: NewExerciseInput) {
+  await db.insert(routineExercises).values(exerciseValues(dayId, orderIndex, exercise));
+}
+
 /** Appends a group of exercises as one write transaction. */
 export async function addExercisesToDay(dayId: number, startOrder: number, exercises: NewExerciseInput[]) {
   db.transaction((tx) => {
     tx.insert(routineExercises)
       .values(
-        exercises.map((exercise, index) => ({
-          routineDayId: dayId,
-          exerciseId: exercise.exerciseId,
-          orderIndex: startOrder + index,
-          targetWeightKg: exercise.targetWeightKg,
-          targetRepsMin: exercise.targetRepsMin,
-          targetRepsMax: exercise.targetRepsMax,
-          targetSets: exercise.targetSets,
-          videoUrl: exercise.videoUrl,
-        }))
+        exercises.map((exercise, index) => exerciseValues(dayId, startOrder + index, exercise))
       )
       .run();
   });
+}
+
+export async function updateRoutineExercise(id: number, input: Partial<NewExerciseInput>) {
+  await db
+    .update(routineExercises)
+    .set({ ...input, updatedAt: sql`(current_timestamp)` })
+    .where(eq(routineExercises.id, id));
+}
+
+export async function deleteRoutineExercise(id: number) {
+  await db.delete(routineExercises).where(eq(routineExercises.id, id));
 }
