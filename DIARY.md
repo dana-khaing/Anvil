@@ -1325,3 +1325,18 @@ loading still begins only after seeding; and notification scheduling still
 does not hold the splash screen. Added hook tests for those boundaries and for
 the complete readiness gate. No screens, routes, persistence, or configuration
 changed.
+
+## 2025-12-18 — Consolidate routine persistence
+
+Routine writes were split between the Zustand store and `db/routines.ts`, and
+both layers maintained the same `NewExerciseInput` shape and exercise-row
+mapping. Moved the shared input type, serialization, and all create/update/
+delete queries into the database module. The store now owns only application
+orchestration: choosing the next order, invoking one persistence operation,
+and reloading state afterward.
+
+The store API and persisted row shapes are unchanged, including its exported
+`NewExerciseInput` type. Added orchestration tests that preserve the existing
+default-routine behavior, day and exercise ordering, and write-before-reload
+sequence. This reduces duplication without changing screens, database schema,
+or user-visible behavior.
