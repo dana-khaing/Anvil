@@ -9,6 +9,7 @@ import '@/global.css';
 import { AnimatedSplashOverlay } from '@/components/splash-overlay';
 import { db } from '@/db/client';
 import { useAppBootstrap } from '@/hooks/use-app-bootstrap';
+import '@/lib/notifications-background-task';
 import { useProfileStore } from '@/stores/profile-store';
 import migrations from '../../drizzle/migrations';
 

@@ -1,8 +1,19 @@
 import * as Notifications from 'expo-notifications';
 
+import { getLocalProfile } from '@/db/profile';
+import {
+  registerNotificationRefreshTask,
+  unregisterNotificationRefreshTask,
+} from '@/lib/notifications-background-task';
+
 import { buildDailyReminderPlan, reengagementFireDate, tipForDate, useNotificationsStore } from './notifications-store';
 
 jest.mock('@/db/client', () => ({ db: {} }));
+jest.mock('@/db/profile', () => ({ getLocalProfile: jest.fn() }));
+jest.mock('@/lib/notifications-background-task', () => ({
+  registerNotificationRefreshTask: jest.fn(),
+  unregisterNotificationRefreshTask: jest.fn(),
+}));
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   getPermissionsAsync: jest.fn(),
@@ -15,6 +26,15 @@ jest.mock('expo-notifications', () => ({
 }));
 
 const TIPS = ['a', 'b', 'c'];
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  useNotificationsStore.setState({ enabled: false, permissionStatus: null, loaded: false });
+  (Notifications.getAllScheduledNotificationsAsync as jest.Mock).mockResolvedValue([]);
+  (Notifications.scheduleNotificationAsync as jest.Mock).mockResolvedValue('scheduled');
+  (registerNotificationRefreshTask as jest.Mock).mockResolvedValue(undefined);
+  (unregisterNotificationRefreshTask as jest.Mock).mockResolvedValue(undefined);
+});
 
 describe('tipForDate', () => {
   it('is deterministic for the same calendar date', () => {
@@ -85,5 +105,41 @@ describe('rescheduleReengagement', () => {
     (Notifications.scheduleNotificationAsync as jest.Mock).mockRejectedValueOnce(new Error('native failure'));
 
     await expect(useNotificationsStore.getState().rescheduleReengagement('2025-09-22')).resolves.toBeUndefined();
+  });
+});
+
+describe('background refresh lifecycle', () => {
+  it('tops up and registers the task when loading an enabled preference', async () => {
+    (getLocalProfile as jest.Mock).mockResolvedValue({ notificationsEnabled: true });
+    (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+
+    await useNotificationsStore.getState().load();
+
+    expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(14);
+    expect(registerNotificationRefreshTask).toHaveBeenCalledTimes(1);
+    expect(unregisterNotificationRefreshTask).not.toHaveBeenCalled();
+    expect(useNotificationsStore.getState()).toMatchObject({ enabled: true, loaded: true });
+  });
+
+  it('unregisters the task when the saved preference is disabled', async () => {
+    (getLocalProfile as jest.Mock).mockResolvedValue({ notificationsEnabled: false });
+    (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+
+    await useNotificationsStore.getState().load();
+
+    expect(registerNotificationRefreshTask).not.toHaveBeenCalled();
+    expect(unregisterNotificationRefreshTask).toHaveBeenCalledTimes(1);
+    expect(useNotificationsStore.getState()).toMatchObject({ enabled: false, loaded: true });
+  });
+
+  it('unregisters the task when notifications are explicitly disabled', async () => {
+    (getLocalProfile as jest.Mock).mockResolvedValue(null);
+    useNotificationsStore.setState({ enabled: true });
+
+    await useNotificationsStore.getState().disable();
+
+    expect(Notifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalledTimes(1);
+    expect(unregisterNotificationRefreshTask).toHaveBeenCalledTimes(1);
+    expect(useNotificationsStore.getState().enabled).toBe(false);
   });
 });
