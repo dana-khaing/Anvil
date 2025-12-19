@@ -1340,3 +1340,25 @@ The store API and persisted row shapes are unchanged, including its exported
 default-routine behavior, day and exercise ordering, and write-before-reload
 sequence. This reduces duplication without changing screens, database schema,
 or user-visible behavior.
+
+## 2025-12-19 — Refresh notification reminders in the background
+
+Daily reminders use a rolling 14-day queue, but that queue previously relied
+on the user enabling notifications or opening the app before it expired. Added
+Expo BackgroundTask and TaskManager support so the operating system can wake
+Anvil periodically and replenish the same queue. The task is defined at module
+scope for Expo's headless runtime and requests a daily minimum interval; its
+actual timing remains under operating-system control.
+
+Moved reminder planning and scheduling into one shared module so foreground
+and background refreshes cannot drift apart. A background run schedules only
+when the local preference remains enabled and notification permission remains
+granted. Loading or enabling notifications registers the task, while loading a
+disabled preference or explicitly disabling notifications unregisters it. All
+registration paths are idempotent, and cold-launch refresh remains in place as
+a deterministic fallback when the OS defers background work.
+
+Tests cover task execution, preference and permission gates, native failures,
+registration lifecycle, and the existing store integration. iOS does not run
+BackgroundTask on a simulator, so native execution timing still needs a
+physical-device development-build check.
