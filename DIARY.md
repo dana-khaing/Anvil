@@ -1362,3 +1362,28 @@ Tests cover task execution, preference and permission gates, native failures,
 registration lifecycle, and the existing store integration. iOS does not run
 BackgroundTask on a simulator, so native execution timing still needs a
 physical-device development-build check.
+
+## 2025-12-20 — Define a reliable backup snapshot contract
+
+The original backup path mirrors individual SQLite rows into relational
+Supabase tables, but it only uploads rows that have never received a remote
+id. Later edits can therefore be omitted, and its restore path does not bring
+back workout sessions, set logs, goals, streaks, or coach history. Before
+changing remote storage or the profile UI, added a complete local snapshot
+contract that gives both upload and restore one explicit boundary.
+
+Version 1 includes every user-owned local table while leaving out the static
+exercise catalog, which already ships with the app. Snapshot rows retain their
+local ids so relationships can be rebuilt deterministically, but omit remote
+ids because those identify the old device's row-by-row sync state rather than
+portable user data. All tables are read in one SQLite transaction and ordered
+by id, producing a coherent and repeatable point-in-time payload.
+
+Each envelope carries a SHA-256 checksum over a canonical representation of
+its version, creation time, and data. The parser rejects unsupported versions,
+unexpected tables or fields, malformed scalar values, duplicate ids, dangling
+routine/session/log relationships, and checksum mismatches before later
+restore code can write anything. Tests cover those failure modes and the
+single-transaction capture path. This day intentionally stops at the local
+contract; storing snapshots under Supabase RLS and restoring them atomically
+remain separate feature days with their own migrations and verification.
