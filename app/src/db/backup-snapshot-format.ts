@@ -226,6 +226,14 @@ export function validateBackupData(value: unknown): asserts value is BackupDataV
   assertReferences('workoutSessions', data.workoutSessions, 'routineDayId', 'routineDays', dayIds);
   assertReferences('setLogs', data.setLogs, 'sessionId', 'workoutSessions', sessionIds);
   assertReferences('setLogs', data.setLogs, 'routineExerciseId', 'routineExercises', routineExerciseIds);
+
+  const sessionsById = new Map(data.workoutSessions.map((session) => [session.id, session]));
+  const exercisesById = new Map(data.routineExercises.map((exercise) => [exercise.id, exercise]));
+  for (const log of data.setLogs) {
+    if (sessionsById.get(log.sessionId)?.routineDayId !== exercisesById.get(log.routineExerciseId)?.routineDayId) {
+      throw new InvalidBackupError('setLogs links a session and exercise from different routine days');
+    }
+  }
 }
 
 function canonicalize(value: unknown): string {
@@ -260,6 +268,14 @@ export async function createBackupSnapshot(data: BackupDataV1, createdAt = new D
 
 export async function parseBackupSnapshot(value: unknown): Promise<BackupSnapshotV1> {
   if (!isRecord(value)) throw new InvalidBackupError('Backup must be an object');
+  const envelopeKeys = Object.keys(value).sort();
+  const expectedEnvelopeKeys = ['checksum', 'createdAt', 'data', 'formatVersion'];
+  if (
+    envelopeKeys.length !== expectedEnvelopeKeys.length ||
+    !expectedEnvelopeKeys.every((key, index) => key === envelopeKeys[index])
+  ) {
+    throw new InvalidBackupError('Backup has an unexpected envelope shape');
+  }
   if (value.formatVersion !== BACKUP_FORMAT_VERSION) {
     throw new InvalidBackupError(`Unsupported backup format version: ${String(value.formatVersion)}`);
   }

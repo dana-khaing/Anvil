@@ -115,8 +115,16 @@ it('creates and accepts a complete checksummed snapshot', async () => {
   expect(digestStringAsync).toHaveBeenCalledWith('SHA-256', expect.stringContaining('"routineExercises"'));
 });
 
-it('rejects an unsupported format before reading its payload', async () => {
-  await expect(parseBackupSnapshot({ formatVersion: 2 })).rejects.toThrow('Unsupported backup format version: 2');
+it('rejects an unsupported format version', async () => {
+  const snapshot = await createBackupSnapshot(validData());
+  await expect(parseBackupSnapshot({ ...snapshot, formatVersion: 2 })).rejects.toThrow(
+    'Unsupported backup format version: 2',
+  );
+});
+
+it('rejects unexpected envelope fields', async () => {
+  const snapshot = await createBackupSnapshot(validData());
+  await expect(parseBackupSnapshot({ ...snapshot, ignored: true })).rejects.toThrow('unexpected envelope shape');
 });
 
 it('rejects malformed rows and unexpected table sets', async () => {
@@ -141,6 +149,20 @@ it('rejects duplicate ids and dangling relationships', async () => {
       setLogs: [{ ...data.setLogs[0], routineExerciseId: 999 }],
     }),
   ).rejects.toThrow('setLogs.routineExerciseId references a missing routineExercises row');
+});
+
+it('rejects a set log connected across two routine days', async () => {
+  const data = validData();
+  await expect(
+    createBackupSnapshot({
+      ...data,
+      routineDays: [
+        ...data.routineDays,
+        { ...data.routineDays[0], id: 21, label: 'Other day', dayOrder: 1 },
+      ],
+      routineExercises: [{ ...data.routineExercises[0], routineDayId: 21 }],
+    }),
+  ).rejects.toThrow('setLogs links a session and exercise from different routine days');
 });
 
 it('rejects a snapshot whose contents no longer match its checksum', async () => {
