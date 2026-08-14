@@ -2,6 +2,16 @@ import { type DayWithExercises } from './routines-store';
 import { adjustForSubstitution, resolveNextDay, type SubstitutionTargets } from './workout-session-store';
 
 jest.mock('@/db/client', () => ({ db: {} }));
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn(),
+  requestPermissionsAsync: jest.fn(),
+  getAllScheduledNotificationsAsync: jest.fn(),
+  cancelScheduledNotificationAsync: jest.fn(),
+  cancelAllScheduledNotificationsAsync: jest.fn(),
+  scheduleNotificationAsync: jest.fn(),
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+}));
 
 function makeDay(id: number, label: string): DayWithExercises {
   return {

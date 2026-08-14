@@ -512,3 +512,73 @@ covering every piece of logic behind it instead. Simulator UI automation
 is now four features running without it — worth actually setting up
 before Day 12's notification permissions flow, which has no
 DB-manipulation workaround at all.
+
+## 2025-09-29 — Notifications & re-engagement
+
+Added `expo-notifications` — the first new native dependency since Day 9's
+WebView, so this needed a real `expo run:ios` rebuild, not just a JS
+change (checked `AGENTS.md`'s standing instruction to read the current
+Expo docs rather than assume the API from memory or an older SDK: the
+installed version replaces `shouldShowAlert` on the notification handler
+with separate `shouldShowBanner`/`shouldShowList` flags, and schedulable
+triggers are now a discriminated union keyed on `SchedulableTriggerInputTypes`
+rather than shape-inferred — writing against the actual installed
+`.d.ts` files caught both before they became a runtime surprise).
+
+Turned `profiles.notificationsEnabled` from a written-but-never-read
+column (existed since Day 3, synced to Supabase since Day 10, never
+actually set to `true` anywhere) into a real toggle — same "finish what
+an earlier day's schema already promised" shape as Day 11's `streaks`/
+`goals` tables.
+
+Scoped to what a local-only, offline-first app can actually deliver
+without a backend: no real push notifications (Simulator can't receive
+those anyway, and there's no server to send them from), just locally
+scheduled ones. Two kinds:
+
+- **Daily reminder**: one notification a day carrying that day's tip
+  rather than two separate notification categories that could both land
+  the same day — "time to train" and "tip of the day" are more useful
+  merged than doubled. `tipForDate` is a deterministic day-index into a
+  fixed 10-tip list (`Date.UTC`-based, so it agrees with itself regardless
+  of what hour it's called at); `buildDailyReminderPlan` schedules the
+  next 14 days individually (each a one-off `DATE` trigger, not a
+  repeating trigger, since the *content* needs to vary daily and a
+  repeating trigger can't do that) and re-tops-up whenever notifications
+  are (re-)enabled. Honest limitation, stated plainly rather than
+  silently: there's no background task topping the queue back up to 14
+  days while the app stays closed, so a user who doesn't open the app for
+  two weeks straight runs out of scheduled reminders. A real background
+  refresh job is more infrastructure than a solo day-by-day build
+  justifies right now; the trade named explicitly rather than pretending
+  this is a durable server-side scheduler.
+- **Re-engagement nudge**: a single one-off notification, rescheduled
+  (cancel + recreate) at the exact point `workout-session-store`'s
+  `finishExercise` marks a session `completed` — same hook Day 11's
+  streak update uses, so a workout completion updates the streak *and*
+  pushes the "come back" nudge three days further out, in one place.
+  `reengagementFireDate` is a pure function (3 unit tests, including a
+  leap-year February rollover) so the date math is checked without
+  needing a real 3-day wait.
+
+Reused Day 11's `toCalendarDate` from `progress-store.ts` for turning
+`finishedAt` into the plain date the reminder math needs, rather than
+writing a second date-formatting helper that could quietly drift from the
+first.
+
+Verification: confirmed the meaningful regression risk directly — after
+the native rebuild, relaunched and the Today tab (which transitively
+imports `notifications-store` through `workout-session-store`) rendered
+correctly with no crash, meaning the new native module linked and the
+`Notifications.setNotificationHandler` module-load side effect didn't
+blow up. Couldn't get further than that live: enabling notifications
+needs a tap on the Profile tab's toggle, which then needs a tap on iOS's
+system permission dialog — confirmed there's no `simctl` escape hatch for
+this specifically (`simctl privacy grant` covers camera/location/contacts/
+etc. but notification permission isn't a TCC service, so it's not in the
+supported list), exactly the gap flagged as a risk at the end of Day 11.
+Fell back to `pnpm typecheck`/`lint`/`test` (66/66 passing, 8 new for the
+date-math functions) as the whole story for the actual notification
+scheduling logic. Simulator UI automation has now blocked real
+tap-through verification on five separate days (4, 5, 8, 10, 12) — it's
+past due.

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/auth-store';
+import { useNotificationsStore } from '@/stores/notifications-store';
 import { useProfileStore } from '@/stores/profile-store';
 import { useSyncStore } from '@/stores/sync-store';
 
@@ -25,13 +26,21 @@ export default function ProfileScreen() {
   const syncError = useSyncStore((state) => state.error);
   const sync = useSyncStore((state) => state.sync);
 
+  const notificationsEnabled = useNotificationsStore((state) => state.enabled);
+  const notificationsPermission = useNotificationsStore((state) => state.permissionStatus);
+  const notificationsLoaded = useNotificationsStore((state) => state.loaded);
+  const loadNotifications = useNotificationsStore((state) => state.load);
+  const enableNotifications = useNotificationsStore((state) => state.enable);
+  const disableNotifications = useNotificationsStore((state) => state.disable);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
 
   useEffect(() => {
     loadProfile();
-  }, [loadProfile]);
+    loadNotifications();
+  }, [loadProfile, loadNotifications]);
 
   useEffect(() => {
     if (session) sync(session.user.id);
@@ -52,6 +61,32 @@ export default function ProfileScreen() {
           </Text>
           <Text className="text-ink-muted">Goal: {profile?.goal ?? 'Not set'}</Text>
         </Card>
+
+        {notificationsLoaded && (
+          <Card className="gap-1">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 pr-3">
+                <Text className="text-xs uppercase tracking-wide text-ink-faint">Notifications</Text>
+                <Text className="mt-1 text-ink-muted">
+                  A daily reminder with a tip, plus a nudge if you&apos;ve been away for a few days.
+                </Text>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={(next) => {
+                  if (next) enableNotifications();
+                  else disableNotifications();
+                }}
+                trackColor={{ true: '#7C5CFF' }}
+              />
+            </View>
+            {notificationsPermission === 'denied' && (
+              <Text className="mt-1 text-sm text-danger">
+                Notifications are blocked in iOS Settings — enable them there first.
+              </Text>
+            )}
+          </Card>
+        )}
 
         {!authChecked ? null : session ? (
           <Card className="gap-3">
