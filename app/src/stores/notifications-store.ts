@@ -4,7 +4,7 @@ import { create } from 'zustand';
 
 import { db } from '@/db/client';
 import { getLocalProfile } from '@/db/profile';
-import { profiles } from '@/db/schema';
+import { profiles, streaks } from '@/db/schema';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -101,7 +101,18 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   load: async () => {
     const profile = await getLocalProfile();
     const { status } = await Notifications.getPermissionsAsync();
-    set({ enabled: (profile?.notificationsEnabled ?? false) && status === 'granted', permissionStatus: status, loaded: true });
+    const enabled = (profile?.notificationsEnabled ?? false) && status === 'granted';
+
+    // There's no background job re-topping the 14-day reminder queue while
+    // the app is closed (see Day 12's diary), so an ordinary app open is
+    // the actual mechanism that's supposed to keep it from running dry --
+    // it was only ever wired to the explicit enable() toggle, so the queue
+    // silently emptied after 14 days no matter how often the app was used.
+    if (enabled) {
+      await scheduleDailyReminders().catch(() => {});
+    }
+
+    set({ enabled, permissionStatus: status, loaded: true });
   },
 
   enable: async () => {
@@ -120,6 +131,16 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     }
     await scheduleDailyReminders();
     set({ enabled: true, permissionStatus: status });
+
+    // Opting in while already mid-inactivity is exactly when a re-engagement
+    // nudge is most useful -- without this, it wouldn't get scheduled until
+    // the *next* workout completion, which defeats the point for someone
+    // who's already gone quiet.
+    const [streakRow] = await db.select().from(streaks).limit(1);
+    if (streakRow?.lastWorkoutDate) {
+      await get().rescheduleReengagement(streakRow.lastWorkoutDate);
+    }
+
     return true;
   },
 

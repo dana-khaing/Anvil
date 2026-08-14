@@ -806,3 +806,97 @@ accessibility prop contracts (`accessible`, `accessibilityRole`,
 `accessibilityLabel`) rather than by actually hearing a screen reader
 announce it. Full typecheck/lint/85-test suite green throughout (5 new
 tests, for `summarizeWeightTrend`).
+
+## 2025-10-19 — Final refactor pass + report
+
+Third and last scheduled cleanup pass. Two real bugs found by re-reading
+what earlier diary entries actually promised versus what the code
+actually did, plus one duplication fix with proven (not hypothetical)
+drift risk:
+
+1. **The daily-reminder queue never actually refilled.** Day 12's diary
+   said the design was to "re-top up whenever notifications are
+   (re-)enabled" — but the only call to `scheduleDailyReminders()` in the
+   whole codebase was inside the explicit `enable()` toggle. There was no
+   call anywhere on an ordinary app open. Since there's still no
+   background job (an honest, stated limitation from Day 12), this meant
+   *every* user's queue ran dry after 14 days regardless of how often
+   they actually used the app — not just the "doesn't open the app for
+   two weeks" edge case the diary's own wording implied was the risk.
+   Wired `notifications-store`'s `load()` to re-top the queue
+   (best-effort, caught) when notifications are already enabled, and call
+   `load()` from the root layout's init effect so it fires on every cold
+   launch — outside the `ready` gate, since a native scheduling call
+   shouldn't hold up app boot.
+2. **Enabling notifications didn't help someone already gone quiet.**
+   Named and explicitly deferred on Day 11's diary, still unfixed two
+   refactor passes later: opting into notifications while mid-inactivity
+   didn't schedule a re-engagement nudge until the *next* workout
+   completion — backwards, since that's exactly when the nudge matters
+   most. `enable()` now reads the current streak's `lastWorkoutDate` and
+   reschedules immediately if one exists. Last chance to close this out
+   before the plan ends, so it earned its spot over a fresh, lower-stakes
+   finding.
+3. **Duplication with proven drift, not just theoretical risk**: audited
+   every raw hex literal in the app (the places `Ionicons` `color`,
+   `placeholderTextColor`, and Skia props need an actual value, not a
+   Tailwind class) — 30 occurrences of 11 distinct colors across 15
+   files. This is the exact bug class Day 16 had to hunt down and fix by
+   grep for `ink-faint` specifically; nothing stopped the same silent
+   drift from happening again for any of the other 10 colors. Extracted
+   `src/constants/colors.ts` as the single source, cross-referenced with
+   `tailwind.config.js` in a comment on both sides since this project has
+   no tooling to derive one from the other automatically (building that
+   would be more infrastructure than a 15-file color fix justifies).
+
+Considered and passed on: a fourth issue purely for symmetry with Days
+7/14's four-item pattern. Three real, well-evidenced fixes beat a
+manufactured fourth — the skill's own instruction is to report findings,
+not hit a quota.
+
+Validated the same way as every pass: typecheck, lint, full suite (85
+passing throughout, unchanged by this pass since none of the three fixes
+needed new tests that weren't already natural extensions of existing
+coverage — the queue/nudge fixes are DB+native-API orchestration, same
+category the project has consistently left to code review rather than
+mocking, and the color extraction is a pure rename with no behavior
+change). Given the color refactor's blast radius (16 files touched), did
+a live boot/smoke check specifically to catch anything a passing
+typecheck could still miss — a botched sed replacement leaving a stray
+literal or breaking JSX syntax entirely — and confirmed the app boots
+clean with the tab bar rendering in the correct colors.
+
+### Closing report
+
+Seventeen days, start to finish: repo scaffold and CI on Day 1 through
+this pass. What shipped: structured routines with a manual builder,
+guided onboarding, a full workout session flow with exercise
+substitution and adjustable targets, in-app YouTube playback, Supabase
+auth with an honestly-scoped backup/restore sync, streaks/monthly
+goals/badges, local notifications with a daily tip and a re-engagement
+nudge, a Gemini-backed AI coach grounded in the user's actual routine,
+workout history with a weight-progression chart and an 8-week streak
+calendar, and a WCAG-AA accessibility pass. Three refactor passes kept
+the codebase from just accumulating debt as features landed on top of
+each other.
+
+What's honestly still missing, named rather than silently absent: a
+YouTube Data API key for auto-recommended videos (Day 9), a real app
+icon (Day 2), a background job to keep the notification queue topped up
+without requiring an app open (Day 12), true multi-device continuous
+sync rather than backup/restore (Day 10), and a from-scratch VoiceOver
+listening pass rather than contrast math and code review (Day 16). None
+of these are secrets — every one is written down in this diary the day
+it was cut, with the reasoning for why that was the right scope call at
+the time rather than an oversight.
+
+The other throughline worth naming plainly: simulator UI automation was
+never available in this environment (no `idb`, no Accessibility
+permission for `osascript`), which blocked live tap-through verification
+on ten separate days. The fallback discipline held up across all of them
+— direct SQLite state seeding to simulate real usage, real end-to-end
+`curl` verification for anything server-side (the Gemini integration in
+particular came out *better* verified than most UI features because of
+this), and unit tests for every piece of pure logic — but it's the one
+piece of infrastructure that would have made the most difference to
+this build's velocity and confidence if it had existed from Day 1.

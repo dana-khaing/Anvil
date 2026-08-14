@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { colors } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth-store';
 import { useNotificationsStore } from '@/stores/notifications-store';
 import { useProfileStore } from '@/stores/profile-store';
@@ -77,7 +78,7 @@ export default function ProfileScreen() {
                   if (next) enableNotifications();
                   else disableNotifications();
                 }}
-                trackColor={{ true: '#7C5CFF' }}
+                trackColor={{ true: colors.pulse500 }}
               />
             </View>
             {notificationsPermission === 'denied' && (
@@ -133,7 +134,7 @@ export default function ProfileScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="Email"
-              placeholderTextColor="#7A8099"
+              placeholderTextColor={colors.inkFaint}
               autoCapitalize="none"
               keyboardType="email-address"
               accessibilityLabel="Email"
@@ -143,7 +144,7 @@ export default function ProfileScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder="Password"
-              placeholderTextColor="#7A8099"
+              placeholderTextColor={colors.inkFaint}
               secureTextEntry
               accessibilityLabel="Password"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"

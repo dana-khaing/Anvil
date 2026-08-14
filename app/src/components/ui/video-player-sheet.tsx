@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
 
+import { colors } from '@/constants/colors';
+
 /**
  * Extracts a YouTube video id from any common URL shape
  * (watch?v=, youtu.be/, shorts/, embed/). Returns null if the url doesn't
@@ -46,14 +48,14 @@ export function VideoPlayerSheet({ videoUrl, visible, onClose }: VideoPlayerShee
           accessibilityLabel="Close video"
           onPress={onClose}
           className="absolute right-4 top-4 z-10 h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
-          <Ionicons name="close" size={20} color="#F4F5FA" />
+          <Ionicons name="close" size={20} color={colors.ink} />
         </Pressable>
 
         {videoId ? (
           <View>
             {loading && (
               <View className="absolute inset-x-0 items-center justify-center" style={{ height: 220 }}>
-                <ActivityIndicator color="#7C5CFF" />
+                <ActivityIndicator color={colors.pulse500} />
               </View>
             )}
             <YoutubeIframe

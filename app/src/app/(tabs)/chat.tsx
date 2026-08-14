@@ -3,6 +3,7 @@ import { FlatList, KeyboardAvoidingView, Platform, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { colors } from '@/constants/colors';
 import { buildRoutineContext, type ChatMessage, useChatStore } from '@/stores/chat-store';
 import { useProfileStore } from '@/stores/profile-store';
 import { useRoutinesStore } from '@/stores/routines-store';
@@ -68,7 +69,7 @@ export default function ChatScreen() {
             value={draft}
             onChangeText={setDraft}
             placeholder="Ask your coach..."
-            placeholderTextColor="#7A8099"
+            placeholderTextColor={colors.inkFaint}
             multiline
             accessibilityLabel="Message"
             className="max-h-28 flex-1 rounded-xl border border-border bg-surface-raised px-4 py-3 text-base text-ink"

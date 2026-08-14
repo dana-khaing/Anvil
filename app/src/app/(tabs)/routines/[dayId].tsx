@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { VideoPlayerSheet } from '@/components/ui/video-player-sheet';
+import { colors } from '@/constants/colors';
 import { useRoutinesStore } from '@/stores/routines-store';
 
 export default function RoutineDayScreen() {
@@ -49,7 +50,7 @@ export default function RoutineDayScreen() {
                 router.back();
               }}
               className="h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
-              <Ionicons name="trash-outline" size={18} color="#F87171" />
+              <Ionicons name="trash-outline" size={18} color={colors.danger} />
             </Pressable>
           }
         />
@@ -82,7 +83,7 @@ export default function RoutineDayScreen() {
                   hitSlop={12}
                   onPress={() => setPlayingVideoUrl(item.videoUrl ?? item.exercise.defaultVideoUrl)}
                   className="mr-2">
-                  <Ionicons name="play-circle-outline" size={22} color="#9C82FF" />
+                  <Ionicons name="play-circle-outline" size={22} color={colors.pulse400} />
                 </Pressable>
               )}
               <Pressable
@@ -90,7 +91,7 @@ export default function RoutineDayScreen() {
                 accessibilityLabel={`Remove ${item.exercise.name}`}
                 hitSlop={12}
                 onPress={() => deleteExercise(item.id)}>
-                <Ionicons name="close-circle-outline" size={22} color="#7A8099" />
+                <Ionicons name="close-circle-outline" size={22} color={colors.inkFaint} />
               </Pressable>
             </Pressable>
           )}
@@ -104,7 +105,7 @@ export default function RoutineDayScreen() {
                 router.push({ pathname: '/routines/exercise-form', params: { dayId } })
               }
               className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4">
-              <Ionicons name="add" size={18} color="#9AA1B8" />
+              <Ionicons name="add" size={18} color={colors.inkMuted} />
               <Text className="text-ink-muted">Add exercise</Text>
             </Pressable>
           }

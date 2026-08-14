@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
+import { colors } from '@/constants/colors';
+
 export type ScreenHeaderProps = {
   title: string;
   onBack?: () => void;
@@ -17,7 +19,7 @@ export function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
         onPress={onBack ?? (() => router.back())}
         hitSlop={12}
         className="h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
-        <Ionicons name="chevron-back" size={20} color="#F4F5FA" />
+        <Ionicons name="chevron-back" size={20} color={colors.ink} />
       </Pressable>
       <Text className="flex-1 px-3 text-lg font-semibold text-ink" numberOfLines={1}>
         {title}
