@@ -173,3 +173,50 @@ by code review and typechecking, not a live run. Worth deliberately setting
 up simulator UI automation (or Maestro, already planned for Day 7+ E2E)
 before Day 6, since the Today/workout-session flow is exactly the kind of
 interactive, multi-step screen that most needs a real tap-through.
+
+## 2025-09-08 — Workout session (Today) flow
+
+Built the real Today screen: resolves which day to train next
+(`resolveNextDay` — the day after whichever one the most recent *completed*
+session covered, wrapping back to the start; resumes in place if a session
+is already `in_progress` rather than advancing), shows the current exercise
+one at a time with a `ProgressRing` tracking completed/total, and a
+"Finished" action that logs `targetSets` set rows at the target weight/reps
+and advances to the next uncompleted exercise. Once every exercise is
+logged, the session flips to `completed` and the screen shows a completion
+state. Deliberately kept logging at the exercise level (not per-set input)
+for this iteration — "Finished" logs all sets at the prescribed target, not
+actual per-set weight/reps entry, which would be a nicer but bigger feature
+for another day.
+
+Pulled `resolveNextDay` out as a standalone pure function specifically so it
+could be unit tested without mocking Drizzle's query chain — the rotation
+math (advance/wrap/handle-a-deleted-day) is exactly the kind of logic that's
+cheap to get subtly wrong and expensive to notice in person, so it got 5
+direct test cases instead of being buried in the store's `load()`.
+
+Actually got real interactive-ish verification this time, working around
+the tap limitation: inserted rows directly into the simulator's SQLite file
+via `sqlite3` to simulate the *results* of tapping through a session (one
+exercise logged, then all three, then session marked complete), and
+reloaded the app after each step. Confirmed: the progress ring fills
+correctly (~1/3 → visibly a gradient arc, not just text), the screen
+correctly resumes on "Incline Dumbbell Press" (the first *uncompleted*
+exercise, correctly skipping the logged one) after an app restart, and —
+the best find — confirmed the single-day wrap-around actually works live,
+not just in the unit test: completing the routine's only day rolled back
+around to a fresh "0/3, Start Workout" state for the same day, exactly as
+`resolveNextDay` predicts for a 1-day routine.
+
+Also fixed a real deprecation warning surfaced by this being the first
+screen to render `ProgressRing` "for real": `Skia.Path.Make().addCircle()`
+is deprecated in favor of `Skia.Path.Circle(x, y, r)` — a one-line fix once
+noticed, but wouldn't have shown up without actually running the app (it's
+a runtime warning, not a type or lint error).
+
+Hit the stuck-dialog issue again from Day 5's `simctl openurl` attempt — an
+"Open in PulseForge?" prompt kept reappearing on every relaunch even without
+calling `openurl` again. `xcrun simctl terminate` + relaunch didn't clear
+it; a full `simctl shutdown` + `boot` of the simulator did. Worth remembering
+that a stuck system-level dialog might survive an app restart and need a
+device-level reset instead.

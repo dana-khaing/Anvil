@@ -8,10 +8,11 @@ to the cloud when you're back online.
 
 ## Status
 
-🚧 Early build. Day 5 of a day-by-day build: repo scaffold through
-onboarding, plus a manual routine builder (add/edit days and exercises —
-weight, reps, sets, optional video link) are in. The workout session flow
-is still ahead. See
+🚧 Early build. Day 6 of a day-by-day build: repo scaffold through the
+manual routine builder, plus a working workout session flow — the Today
+tab resolves your next training day, walks you through one exercise at a
+time, and tracks progress — are in. Exercise substitution, video, sync,
+gamification, and AI chat are still ahead. See
 [`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
 
 ## Planned features

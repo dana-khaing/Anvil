@@ -22,11 +22,7 @@ export function ProgressRing({
   const center = size / 2;
   const clamped = Math.min(1, Math.max(0, progress));
 
-  const path = useMemo(() => {
-    const p = Skia.Path.Make();
-    p.addCircle(center, center, radius);
-    return p;
-  }, [center, radius]);
+  const path = useMemo(() => Skia.Path.Circle(center, center, radius), [center, radius]);
 
   return (
     <View style={{ width: size, height: size }}>
