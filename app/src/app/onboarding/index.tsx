@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { OptionCard } from '@/components/onboarding/option-card';
 import { Button } from '@/components/ui/button';
+import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { db } from '@/db/client';
 import { createRoutineFromTemplate } from '@/db/routines';
 import { profiles } from '@/db/schema';
@@ -46,8 +47,8 @@ export default function OnboardingScreen() {
     setSaving(true);
     try {
       await db.insert(profiles).values({
-        heightCm: heightCm ? Number(heightCm) : null,
-        weightKg: weightKg ? Number(weightKg) : null,
+        heightCm: parseOptionalNumber(heightCm),
+        weightKg: parseOptionalNumber(weightKg),
         goal: options.withRoutine ? goal : null,
         lastActiveAt: new Date().toISOString(),
       });
@@ -207,30 +208,6 @@ function StepDots({ current, total }: { current: number; total: number }) {
           className={`h-1.5 flex-1 rounded-full ${index <= current ? 'bg-pulse-500' : 'bg-surface-raised'}`}
         />
       ))}
-    </View>
-  );
-}
-
-function NumberField({
-  label,
-  value,
-  onChangeText,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-}) {
-  return (
-    <View>
-      <Text className="mb-1.5 text-sm text-ink-muted">{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={(text) => onChangeText(text.replace(/[^0-9.]/g, ''))}
-        keyboardType="numeric"
-        placeholder="0"
-        placeholderTextColor="#5B6178"
-        className="rounded-xl border border-border bg-surface-raised px-4 py-3.5 text-base text-ink"
-      />
     </View>
   );
 }

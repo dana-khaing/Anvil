@@ -220,3 +220,48 @@ calling `openurl` again. `xcrun simctl terminate` + relaunch didn't clear
 it; a full `simctl shutdown` + `boot` of the simulator did. Worth remembering
 that a stuck system-level dialog might survive an app restart and need a
 device-level reset instead.
+
+## 2025-09-11 — Refactor-and-refine pass #1
+
+First scheduled cleanup pass, surveying everything built across Days 1-6.
+Found four real, evidenced issues rather than manufacturing busywork:
+
+1. **Duplication + a real correctness bug**: onboarding's `NumberField` and
+   the exercise form's `FormField` were byte-for-byte identical, and both
+   let a user type more than one decimal point (`"1.2.3"` passed straight
+   through, then `Number("1.2.3")` is `NaN`, and that would have hit a
+   `real` column in SQLite). Extracted a shared `components/ui/number-field.tsx`
+   with `sanitizeNumericInput` (keeps at most one decimal point during
+   typing) and `parseOptionalNumber` (returns `null` instead of `NaN` at
+   parse time, catching the edge cases typing can't, like a lone `"."`).
+   Both are unit tested; both call sites (onboarding, exercise-form) now
+   use the shared component instead of their own copy.
+2. **Dead code**: `constants/theme.ts`'s `Fonts`/`Spacing`/`BottomTabInset`/
+   `MaxContentWidth` and `hooks/use-color-scheme.ts`/`.web.ts` had zero
+   remaining importers since Day 2's move to NativeWind — removed rather
+   than kept "in case it's useful later," per the skill's own guidance
+   against designing for hypothetical future needs. Trivial to re-add if
+   actually needed.
+3. **Coverage gap on code Day 8 depends on**: `alternativesFor`'s
+   `JSON.parse(exercise.alternativeIds)` had no error handling — malformed
+   data would throw synchronously inside a Zustand selector and crash
+   whatever called it. Extracted `parseAlternativeIds` as a pure,
+   try/caught, unit-tested function, since Day 8 (exercise substitution)
+   is about to build directly on top of this exact code path.
+4. **Missing empty state**: the exercise picker's search had no "no
+   results" feedback — a query with zero matches just showed a blank list,
+   inconsistent with the Routines tab's existing empty-state pattern.
+   Added one.
+
+Considered and deliberately deferred: comprehensive error handling around
+every DB mutation (SQLite writes failing isn't a real observed risk here,
+unlike a network call — didn't meet the bar for "concrete cost"), and
+accessibility labels beyond what came free with the NumberField extraction
+(full pass is explicitly Day 16's job; doing it piecemeal now risks
+inconsistency with whatever systematic approach that day takes).
+
+Validated the same way as every feature day: typecheck, lint, full test
+suite (26 passing across 6 suites after this pass, up from 12), and an app
+boot/smoke check on the simulator to confirm nothing broke — no full
+tap-through needed since every change here was either covered by a new unit
+test or was a pure removal/rename with no behavior change.

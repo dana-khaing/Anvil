@@ -12,6 +12,16 @@ type ExerciseLibraryState = {
   alternativesFor: (exerciseId: string) => Exercise[];
 };
 
+/** Safely reads an exercise's alternativeIds JSON, tolerating malformed data. */
+export function parseAlternativeIds(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * expo-sqlite/Drizzle has no built-in reactive observables (unlike
  * WatermelonDB), so stores re-query explicitly after any mutation that
@@ -28,7 +38,7 @@ export const useExerciseLibraryStore = create<ExerciseLibraryState>((set, get) =
   alternativesFor: (exerciseId) => {
     const exercise = get().exercises.find((item) => item.id === exerciseId);
     if (!exercise) return [];
-    const ids: string[] = JSON.parse(exercise.alternativeIds);
+    const ids = parseAlternativeIds(exercise.alternativeIds);
     return get().exercises.filter((item) => ids.includes(item.id));
   },
 }));
