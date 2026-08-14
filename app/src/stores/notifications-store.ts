@@ -1,8 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import * as Notifications from 'expo-notifications';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
+import { getLocalProfile } from '@/db/profile';
 import { profiles } from '@/db/schema';
 
 Notifications.setNotificationHandler({
@@ -98,7 +99,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   loaded: false,
 
   load: async () => {
-    const [profile] = await db.select().from(profiles).limit(1);
+    const profile = await getLocalProfile();
     const { status } = await Notifications.getPermissionsAsync();
     set({ enabled: (profile?.notificationsEnabled ?? false) && status === 'granted', permissionStatus: status, loaded: true });
   },
@@ -110,9 +111,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       return false;
     }
 
-    const [profile] = await db.select().from(profiles).limit(1);
+    const profile = await getLocalProfile();
     if (profile) {
-      await db.update(profiles).set({ notificationsEnabled: true }).where(eq(profiles.id, profile.id));
+      await db
+        .update(profiles)
+        .set({ notificationsEnabled: true, updatedAt: sql`(current_timestamp)` })
+        .where(eq(profiles.id, profile.id));
     }
     await scheduleDailyReminders();
     set({ enabled: true, permissionStatus: status });
@@ -121,9 +125,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   disable: async () => {
     await Notifications.cancelAllScheduledNotificationsAsync();
-    const [profile] = await db.select().from(profiles).limit(1);
+    const profile = await getLocalProfile();
     if (profile) {
-      await db.update(profiles).set({ notificationsEnabled: false }).where(eq(profiles.id, profile.id));
+      await db
+        .update(profiles)
+        .set({ notificationsEnabled: false, updatedAt: sql`(current_timestamp)` })
+        .where(eq(profiles.id, profile.id));
     }
     set({ enabled: false });
   },
@@ -131,6 +138,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   rescheduleReengagement: async (lastWorkoutDate) => {
     if (!get().enabled) return;
 
+    // Best-effort: this runs right after a workout is already recorded as
+    // completed (see workout-session-store's finishExercise), so a native
+    // scheduling hiccup here must never surface as a rejected promise on
+    // top of an already-successful completion.
     await Notifications.cancelScheduledNotificationAsync(REENGAGEMENT_ID).catch(() => {});
     await Notifications.scheduleNotificationAsync({
       identifier: REENGAGEMENT_ID,
@@ -142,6 +153,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: reengagementFireDate(lastWorkoutDate, REENGAGEMENT_INACTIVITY_DAYS, REENGAGEMENT_HOUR),
       },
-    });
+    }).catch(() => {});
   },
 }));

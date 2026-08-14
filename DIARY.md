@@ -632,3 +632,60 @@ the usual limitation — confirmed the app boots cleanly on the new
 migration (chat_messages table present, all three migrations applied)
 but couldn't tap into the Chat tab to see it rendered live; leaning on
 typecheck/lint/the 4 new unit tests/70 total passing for that half.
+
+## 2025-10-07 — Refactor-and-refine pass #2
+
+Second scheduled cleanup pass, surveying Days 8-13. Four real, evidenced
+issues, same bar as Day 7 — no manufactured busywork:
+
+1. **A correctness bug named three days ago and left open**: Day 10's
+   diary explicitly flagged that SQLite's `DEFAULT (current_timestamp)`
+   only fires on `INSERT`, and that `routines-store`'s `updateExercise`
+   and `workout-session-store`'s session completion both mutate existing
+   rows without setting `updatedAt` themselves — "worth remembering for
+   Day 14's refactor pass." Surveying for it surfaced a third instance in
+   the same family: `notifications-store`'s `enable`/`disable` toggling
+   `profiles.notificationsEnabled` without touching `updatedAt` either.
+   All three now set `updatedAt: sql\`(current_timestamp)\`` — matching
+   the DB's own insert-time default expression rather than a JS-computed
+   ISO string, so the column never ends up mixing two timestamp formats
+   depending on whether a row was last touched by an INSERT or an UPDATE.
+   Concrete cost if left alone: Day 10's sync reads exactly these
+   `updatedAt` values off exactly these tables.
+2. **An edge case that worked by accident**: `rescheduleReengagement`
+   runs immediately after `finishExercise` has already committed a
+   session as completed — DB write and local state both done — as a
+   best-effort side effect. If the native `scheduleNotificationAsync`
+   call rejected, that exception propagated out of a fire-and-forget
+   `onPress` handler as an unhandled rejection sitting on top of an
+   already-successful workout completion. Wrapped it the same way the
+   adjacent `cancelScheduledNotificationAsync` call already was, and
+   added a regression test asserting the promise resolves even when the
+   native call is mocked to reject.
+3. **Duplication**: the exact one-liner `db.select().from(profiles).limit(1)`
+   — "the single local profile row, or none yet" — was repeated 5 times
+   across `profile-store`, `notifications-store` (×3), and `sync.ts`.
+   Extracted `getLocalProfile()` into `db/profile.ts`, matching the
+   existing pattern of `db/routines.ts`/`db/sync.ts` holding pure DB
+   helpers separate from the Zustand stores.
+4. **Dead code**: `ScreenPlaceholder` had zero remaining importers —
+   its last two call sites (Progress, Chat) were replaced with real
+   screens on Days 11 and 13. Removed rather than kept around, same
+   reasoning as Day 7's `constants/theme.ts` removal.
+
+Considered and deliberately deferred: rescheduling the re-engagement
+nudge immediately when a user turns notifications on mid-inactivity
+(currently it only gets (re)scheduled on the *next* workout completion,
+so opting in while already quiet doesn't get a nudge until either a
+workout happens or the streak resets). Real gap, but weaker and more
+speculative than the four above — would need to decide whether to read
+from `progress-store` or query `streaks` directly, and touches product
+behavior more than it fixes a defect. Left named here rather than
+silently dropped, candidate for a future day if it turns out to matter.
+
+Validated the same way as Day 7: typecheck, lint, full suite (71 passing
+across 11 suites, up from 70 — the one new test is the notification-
+resilience regression test), and a simulator boot/smoke check to confirm
+nothing broke. No full tap-through needed — every change here was either
+covered by an existing or new test, or a pure removal/extraction with no
+behavior change.

@@ -1,4 +1,6 @@
-import { buildDailyReminderPlan, reengagementFireDate, tipForDate } from './notifications-store';
+import * as Notifications from 'expo-notifications';
+
+import { buildDailyReminderPlan, reengagementFireDate, tipForDate, useNotificationsStore } from './notifications-store';
 
 jest.mock('@/db/client', () => ({ db: {} }));
 jest.mock('expo-notifications', () => ({
@@ -6,7 +8,7 @@ jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
   getAllScheduledNotificationsAsync: jest.fn(),
-  cancelScheduledNotificationAsync: jest.fn(),
+  cancelScheduledNotificationAsync: jest.fn().mockResolvedValue(undefined),
   cancelAllScheduledNotificationsAsync: jest.fn(),
   scheduleNotificationAsync: jest.fn(),
   SchedulableTriggerInputTypes: { DATE: 'date' },
@@ -74,5 +76,14 @@ describe('reengagementFireDate', () => {
     const fireDate = reengagementFireDate('2024-02-27', 3, 18);
     expect(fireDate.getMonth()).toBe(2);
     expect(fireDate.getDate()).toBe(1);
+  });
+});
+
+describe('rescheduleReengagement', () => {
+  it('resolves even if the underlying native scheduling call rejects', async () => {
+    useNotificationsStore.setState({ enabled: true });
+    (Notifications.scheduleNotificationAsync as jest.Mock).mockRejectedValueOnce(new Error('native failure'));
+
+    await expect(useNotificationsStore.getState().rescheduleReengagement('2025-09-22')).resolves.toBeUndefined();
   });
 });
