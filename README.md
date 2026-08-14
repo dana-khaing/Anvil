@@ -8,10 +8,11 @@ to the cloud when you're back online.
 
 ## Status
 
-🚧 Early build. Day 3 of a day-by-day build: repo scaffold, design tokens,
-UI kit, navigation shell, and the local offline data layer (SQLite schema +
-seeded exercise library) are in — no real screens wired to real data yet.
-See [`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
+🚧 Early build. Day 4 of a day-by-day build: repo scaffold through the local
+data layer, plus a working onboarding flow (height/weight/goal/split →
+generates a starter routine, or skip to build your own) are in. Manual
+routine building and the workout session flow are still ahead. See
+[`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
 
 ## Planned features
 
