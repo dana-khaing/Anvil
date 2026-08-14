@@ -900,3 +900,15 @@ particular came out *better* verified than most UI features because of
 this), and unit tests for every piece of pure logic — but it's the one
 piece of infrastructure that would have made the most difference to
 this build's velocity and confidence if it had existed from Day 1.
+
+## 2025-10-23 — Fix: chat input hidden under the tab bar
+
+Post-plan, user-reported: the Chat tab's message input was invisible,
+covered by the floating glass tab bar. Every other tab screen clears the
+tab bar with `pb-32` on its bottom-most content — Chat's input row was
+the one screen that never got that treatment, at `pb-3`. One-line fix.
+Verified via a boot/smoke check (no crash) and code review against the
+exact pattern already proven on four other screens; couldn't get a live
+screenshot of the Chat tab specifically since it isn't the default tab
+and this environment still has no tap automation to navigate to it —
+same standing limitation as the rest of this project.
