@@ -294,3 +294,41 @@ of a store-mocking workaround: default list, equipment-filter narrowing, the
 empty-filter-result message, `onSelect`/`onCancel` firing correctly. Visually
 confirmed the Today screen's new Swap/Finished button row renders correctly
 on the simulator. 36 tests passing across 7 suites, up from 26.
+
+## 2025-09-19 — Exercise video (in-app playback)
+
+Real scope cut before starting: the plan's Day 9 called for auto-recommended
+video search proxied through a Supabase Edge Function, but Supabase doesn't
+exist until Day 10, and it also needs a YouTube Data API key that hasn't
+been provided. Shipping a feature that references infrastructure that
+doesn't exist yet isn't a real feature, so split it: today ships in-app
+playback for the manual `videoUrl` field that's existed on routine exercises
+since Day 5 (and was already editable, just never actually played anywhere).
+The search-recommendation half moves to land after Day 10, once there's a
+real Supabase project and Edge Function to proxy through, and once a
+YouTube key exists. Updated the plan file to record this rather than let it
+silently drop.
+
+`VideoPlayerSheet` wraps `react-native-youtube-iframe` in a modal sheet —
+plays inside the app, never redirects to the YouTube app or browser, per
+the original ask. `extractYoutubeVideoId` (unit tested, 8 cases: watch
+urls with and without extra query params, `youtu.be`, `/shorts/`, `/embed/`,
+non-YouTube urls, empty/whitespace input) parses whatever URL shape a user
+pastes into a video id, since the iframe player needs a bare id, not a full
+link. Wired a "watch video" icon into both the Routines day-detail list
+(every exercise row that has a link) and the Today screen's current
+exercise card, falling back from the routine-specific `videoUrl` to the
+exercise catalog's `defaultVideoUrl` when swapped to a substitute (which
+has no per-routine link of its own).
+
+`react-native-webview` (a new native dependency, since the iframe player is
+a WebView under the hood) needed a fresh `expo run:ios` to link — checked
+its and `react-native-youtube-iframe`'s freshness before installing, given
+how much bleeding-edge friction this stack has already produced (both
+current, `react-native-webview` is the actively-maintained
+community-standard package, lower risk than Skia/WatermelonDB were). Also
+had to mock `react-native-youtube-iframe` in its own test file, same pattern
+as `expo-haptics` in Day 8 — the pure `extractYoutubeVideoId` function lives
+in the same file as the component per the established number-field.tsx
+pattern, but the component import alone pulls in the native WebView module,
+which isn't mocked under Jest by default.

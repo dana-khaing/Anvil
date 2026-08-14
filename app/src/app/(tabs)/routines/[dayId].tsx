@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { VideoPlayerSheet } from '@/components/ui/video-player-sheet';
 import { useRoutinesStore } from '@/stores/routines-store';
 
 export default function RoutineDayScreen() {
@@ -14,6 +15,8 @@ export default function RoutineDayScreen() {
   const load = useRoutinesStore((state) => state.load);
   const deleteExercise = useRoutinesStore((state) => state.deleteExercise);
   const deleteDay = useRoutinesStore((state) => state.deleteDay);
+
+  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
   const day = days.find((item) => String(item.id) === dayId);
 
@@ -71,6 +74,16 @@ export default function RoutineDayScreen() {
                   -{item.targetRepsMax} reps · {item.targetSets} sets
                 </Text>
               </View>
+              {(item.videoUrl ?? item.exercise.defaultVideoUrl) && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Watch video for ${item.exercise.name}`}
+                  hitSlop={12}
+                  onPress={() => setPlayingVideoUrl(item.videoUrl ?? item.exercise.defaultVideoUrl)}
+                  className="mr-2">
+                  <Ionicons name="play-circle-outline" size={22} color="#9C82FF" />
+                </Pressable>
+              )}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Remove ${item.exercise.name}`}
@@ -95,6 +108,14 @@ export default function RoutineDayScreen() {
           }
         />
       </View>
+
+      {playingVideoUrl && (
+        <VideoPlayerSheet
+          videoUrl={playingVideoUrl}
+          visible={playingVideoUrl !== null}
+          onClose={() => setPlayingVideoUrl(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
