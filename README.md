@@ -8,9 +8,10 @@ to the cloud when you're back online.
 
 ## Status
 
-🚧 Early build. Day 13 of a day-by-day build: repo scaffold through the
-Gemini AI coach are in. Auto-recommended video search is still deferred
-until it has a YouTube Data API key to call. See
+🚧 Early build. Day 15 of a day-by-day build: repo scaffold through
+progress stats (workout history, a weight-progression chart, and an
+8-week streak calendar) are in. Auto-recommended video search is still
+deferred until it has a YouTube Data API key to call. See
 [`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
 
 ## Planned features

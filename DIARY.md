@@ -689,3 +689,49 @@ resilience regression test), and a simulator boot/smoke check to confirm
 nothing broke. No full tap-through needed — every change here was either
 covered by an existing or new test, or a pure removal/extraction with no
 behavior change.
+
+## 2025-10-11 — Progress & stats
+
+Filled in what the Progress tab's original Day 2 placeholder promised
+and Day 11 didn't get to: "history, weight-progression charts, and a
+streak calendar." New `stats-store.ts` adds all three, reusing Day 11's
+`completedSessionDates` (exported it from `progress-store.ts` rather than
+re-querying the same thing a second way) for the calendar data.
+
+Scope call on the weight chart: no exercise picker. `mostLoggedExerciseId`
+auto-picks whichever exercise has the most logged sets and charts that
+one — simpler than building a picker UI, and it's usually the exercise
+the user actually cares about progress on (the one they do most). A
+picker is a natural follow-up if it turns out people want to see a
+different lift; didn't build it speculatively.
+
+`WeightChart` is a small Skia line component (`components/ui/`, same
+pattern as Day 2's `ProgressRing` — `Canvas`/`Path`/gradient stroke, no
+new dependency) plotting the heaviest set per calendar date for the
+picked exercise. Requires 2+ points to draw a line for the obvious
+reason (a single point is a dot, not a trend) — falls back to a plain
+"Xkg logged so far" line below that threshold rather than an empty
+canvas.
+
+Verification took a different shape than usual, and turned up something
+genuinely useful: since unit tests mock `db` entirely, they can't catch
+a wrong column name or a bad join condition. Seeded three real completed
+sessions with real `set_logs` rows (varying weights across dates, mixed
+exercises) directly into the simulator's SQLite file, then ran the exact
+join queries `stats-store.load()` uses through the `sqlite3` CLI by hand
+— confirmed the history query resolves day labels correctly and the
+weight-progression source query correctly threads `substituted_exercise_id`
+past `routine_exercises.exercise_id`. This is a real gap the 9 pure-function
+unit tests alone don't cover (they test the logic *given* correctly-shaped
+rows, not whether the query produces correctly-shaped rows), worth doing
+again for future data-heavy features. Also tried one more deep-link angle
+to actually see the tab rendered — `simctl openurl` from a fully
+terminated app state this time, not just while foregrounded — got the
+identical `LSApplicationWorkspaceErrorDomain` -115 either way, so it's
+not a foreground/background distinction; the scheme just isn't resolving
+in this dev-client build. Confirmed (again) that `osascript`/System
+Events can list running processes — Simulator included — but the actual
+click permission is the piece missing (`osascript is not allowed
+assistive access`, -1719), a more precise diagnosis than prior days had.
+Boot/smoke check confirmed no regression; leaning on the query
+cross-check above plus the 9 unit tests for the rest.

@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { WeightChart } from '@/components/ui/weight-chart';
 import { useProgressStore } from '@/stores/progress-store';
+import { useStatsStore } from '@/stores/stats-store';
 
 export default function ProgressScreen() {
   const streak = useProgressStore((state) => state.streak);
@@ -18,14 +20,21 @@ export default function ProgressScreen() {
   const load = useProgressStore((state) => state.load);
   const setMonthlyTarget = useProgressStore((state) => state.setMonthlyTarget);
 
+  const history = useStatsStore((state) => state.history);
+  const calendar = useStatsStore((state) => state.calendar);
+  const weightChart = useStatsStore((state) => state.weightChart);
+  const statsLoaded = useStatsStore((state) => state.loaded);
+  const loadStats = useStatsStore((state) => state.load);
+
   const [editingGoal, setEditingGoal] = useState(false);
   const [targetInput, setTargetInput] = useState('');
 
   useEffect(() => {
     load();
-  }, [load]);
+    loadStats();
+  }, [load, loadStats]);
 
-  if (!loaded) {
+  if (!loaded || !statsLoaded) {
     return <SafeAreaView className="flex-1 bg-background" />;
   }
 
@@ -121,6 +130,60 @@ export default function ProgressScreen() {
               </View>
             ))}
           </View>
+        </Card>
+
+        <Card className="gap-3">
+          <Text className="text-xs uppercase tracking-wide text-ink-faint">Last 8 weeks</Text>
+          <View className="flex-row flex-wrap gap-1">
+            {calendar.map((day) => (
+              <View
+                key={day.date}
+                className={`h-3.5 w-3.5 rounded-sm ${day.completed ? 'bg-flame-500' : 'bg-surface'}`}
+              />
+            ))}
+          </View>
+        </Card>
+
+        {weightChart && (
+          <Card className="gap-3">
+            <Text className="text-xs uppercase tracking-wide text-ink-faint">{weightChart.exerciseName}</Text>
+            {weightChart.points.length >= 2 ? (
+              <>
+                <WeightChart points={weightChart.points} />
+                <Text className="text-ink-muted">
+                  {weightChart.points[0].weightKg}kg → {weightChart.points[weightChart.points.length - 1].weightKg}kg
+                </Text>
+              </>
+            ) : (
+              <Text className="text-ink-muted">
+                {weightChart.points[0].weightKg}kg logged so far — a couple more sessions and this becomes a
+                trend line.
+              </Text>
+            )}
+          </Card>
+        )}
+
+        <Card className="gap-3">
+          <Text className="text-xs uppercase tracking-wide text-ink-faint">History</Text>
+          {history.length === 0 ? (
+            <Text className="text-ink-muted">Completed workouts will show up here.</Text>
+          ) : (
+            <View className="gap-3">
+              {history.map((entry) => (
+                <View key={entry.sessionId} className="flex-row items-center justify-between">
+                  <View>
+                    <Text className="text-ink">{entry.dayLabel}</Text>
+                    <Text className="text-xs text-ink-faint">
+                      {new Date(entry.finishedAt).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <Text className="text-ink-muted">
+                    {entry.exerciseCount} exercise{entry.exerciseCount === 1 ? '' : 's'} · {entry.setCount} sets
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </Card>
       </ScrollView>
     </SafeAreaView>
