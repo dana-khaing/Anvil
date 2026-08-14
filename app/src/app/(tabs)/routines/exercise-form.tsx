@@ -75,7 +75,8 @@ export default function ExerciseFormScreen() {
             value={search}
             onChangeText={setSearch}
             placeholder="Search exercises"
-            placeholderTextColor="#5B6178"
+            placeholderTextColor="#7A8099"
+            accessibilityLabel="Search exercises"
             className="mb-3 rounded-xl border border-border bg-surface-raised px-4 py-3 text-base text-ink"
           />
           <FlatList
@@ -84,6 +85,7 @@ export default function ExerciseFormScreen() {
             contentContainerStyle={{ gap: 8, paddingBottom: 32 }}
             renderItem={({ item }) => (
               <Pressable
+                accessibilityRole="button"
                 onPress={() => setExerciseId(item.id)}
                 className="rounded-xl border border-border bg-surface-raised px-4 py-3">
                 <Text className="text-base text-ink">{item.name}</Text>
@@ -131,9 +133,10 @@ export default function ExerciseFormScreen() {
               value={videoUrl}
               onChangeText={setVideoUrl}
               placeholder="https://youtube.com/..."
-              placeholderTextColor="#5B6178"
+              placeholderTextColor="#7A8099"
               autoCapitalize="none"
               keyboardType="url"
+              accessibilityLabel="Video link (optional)"
               className="rounded-xl border border-border bg-surface-raised px-4 py-3.5 text-base text-ink"
             />
           </View>

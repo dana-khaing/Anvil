@@ -140,7 +140,7 @@ export default function TodayScreen() {
                     Exercise {completedCount + 1} of {total}
                   </Text>
                   {activeSubstitution && (
-                    <Pressable onPress={clearSubstitution}>
+                    <Pressable accessibilityRole="button" onPress={clearSubstitution}>
                       <Text className="text-xs text-pulse-400">Use original</Text>
                     </Pressable>
                   )}

@@ -34,7 +34,7 @@ export function NumberField({ label, value, onChangeText }: NumberFieldProps) {
         onChangeText={(text) => onChangeText(sanitizeNumericInput(text))}
         keyboardType="numeric"
         placeholder="0"
-        placeholderTextColor="#5B6178"
+        placeholderTextColor="#7A8099"
         accessibilityLabel={label}
         className="rounded-xl border border-border bg-surface-raised px-4 py-3.5 text-base text-ink"
       />

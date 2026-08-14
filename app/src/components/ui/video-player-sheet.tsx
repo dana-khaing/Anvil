@@ -45,7 +45,7 @@ export function VideoPlayerSheet({ videoUrl, visible, onClose }: VideoPlayerShee
           accessibilityRole="button"
           accessibilityLabel="Close video"
           onPress={onClose}
-          className="absolute right-4 top-4 z-10 h-10 w-10 items-center justify-center rounded-full bg-surface-raised">
+          className="absolute right-4 top-4 z-10 h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
           <Ionicons name="close" size={20} color="#F4F5FA" />
         </Pressable>
 

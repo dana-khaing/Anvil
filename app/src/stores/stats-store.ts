@@ -74,6 +74,17 @@ export function weightProgressionByDate(rows: WeightLog[], exerciseId: string): 
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
+/** A screen-reader description of a weight trend -- the chart line has no text equivalent otherwise. */
+export function summarizeWeightTrend(exerciseName: string, points: WeightPoint[]): string {
+  if (points.length === 0) return `${exerciseName}: no sessions logged yet.`;
+  if (points.length === 1) return `${exerciseName}: ${points[0].weightKg}kg logged so far.`;
+
+  const first = points[0].weightKg;
+  const last = points[points.length - 1].weightKg;
+  const direction = last > first ? 'up' : last < first ? 'down' : 'flat';
+  return `${exerciseName}: ${direction} from ${first}kg to ${last}kg over ${points.length} sessions.`;
+}
+
 type WeightChart = { exerciseName: string; points: WeightPoint[] };
 
 type StatsState = {

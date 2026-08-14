@@ -8,10 +8,12 @@ export type WeightChartProps = {
   points: WeightChartPoint[];
   width?: number;
   height?: number;
+  /** A screen-reader summary of the trend -- the line itself has no text equivalent otherwise. */
+  accessibilityLabel?: string;
 };
 
 /** A minimal line chart for weight-over-time -- no axes/labels, just the trend line. */
-export function WeightChart({ points, width = 280, height = 120 }: WeightChartProps) {
+export function WeightChart({ points, width = 280, height = 120, accessibilityLabel }: WeightChartProps) {
   const path = useMemo(() => {
     const drawn = Skia.Path.Make();
     if (points.length < 2) return drawn;
@@ -33,7 +35,11 @@ export function WeightChart({ points, width = 280, height = 120 }: WeightChartPr
   }, [points, width, height]);
 
   return (
-    <View style={{ width, height }}>
+    <View
+      style={{ width, height }}
+      accessible={accessibilityLabel !== undefined}
+      accessibilityRole="image"
+      accessibilityLabel={accessibilityLabel}>
       <Canvas style={{ width, height }}>
         <Path path={path} style="stroke" strokeWidth={3} strokeCap="round" strokeJoin="round">
           <LinearGradient start={vec(0, 0)} end={vec(width, 0)} colors={['#7C5CFF', '#22D3EE']} />

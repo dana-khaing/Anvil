@@ -59,6 +59,7 @@ export function SubstitutionPicker({ alternatives, onSelect, onCancel }: Substit
           {filtered.map((exercise) => (
             <Pressable
               key={exercise.id}
+              accessibilityRole="button"
               onPress={() => onSelect(exercise)}
               className="rounded-xl border border-border bg-surface-raised px-4 py-3">
               <Text className="text-base text-ink">{exercise.name}</Text>

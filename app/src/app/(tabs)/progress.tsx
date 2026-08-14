@@ -9,7 +9,7 @@ import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { WeightChart } from '@/components/ui/weight-chart';
 import { useProgressStore } from '@/stores/progress-store';
-import { useStatsStore } from '@/stores/stats-store';
+import { summarizeWeightTrend, useStatsStore } from '@/stores/stats-store';
 
 export default function ProgressScreen() {
   const streak = useProgressStore((state) => state.streak);
@@ -53,7 +53,7 @@ export default function ProgressScreen() {
             <Ionicons
               name={streak.currentStreak > 0 ? 'flame' : 'flame-outline'}
               size={28}
-              color={streak.currentStreak > 0 ? '#FF7A1A' : '#5B6178'}
+              color={streak.currentStreak > 0 ? '#FF7A1A' : '#7A8099'}
             />
           </View>
           <View className="flex-1">
@@ -115,13 +115,15 @@ export default function ProgressScreen() {
             {badges.map((badge) => (
               <View
                 key={badge.id}
+                accessible
+                accessibilityLabel={`${badge.label}: ${badge.description}. ${badge.earned ? 'Earned' : 'Locked'}.`}
                 className={`w-[47%] gap-1 rounded-xl border p-3 ${
                   badge.earned ? 'border-pulse-500 bg-pulse-500/10' : 'border-border bg-surface'
                 }`}>
                 <Ionicons
                   name={badge.earned ? 'ribbon' : 'lock-closed-outline'}
                   size={20}
-                  color={badge.earned ? '#9C82FF' : '#5B6178'}
+                  color={badge.earned ? '#9C82FF' : '#7A8099'}
                 />
                 <Text className={`text-sm font-semibold ${badge.earned ? 'text-ink' : 'text-ink-faint'}`}>
                   {badge.label}
@@ -134,7 +136,10 @@ export default function ProgressScreen() {
 
         <Card className="gap-3">
           <Text className="text-xs uppercase tracking-wide text-ink-faint">Last 8 weeks</Text>
-          <View className="flex-row flex-wrap gap-1">
+          <View
+            className="flex-row flex-wrap gap-1"
+            accessible
+            accessibilityLabel={`${calendar.filter((day) => day.completed).length} of ${calendar.length} days completed in the last 8 weeks`}>
             {calendar.map((day) => (
               <View
                 key={day.date}
@@ -149,7 +154,10 @@ export default function ProgressScreen() {
             <Text className="text-xs uppercase tracking-wide text-ink-faint">{weightChart.exerciseName}</Text>
             {weightChart.points.length >= 2 ? (
               <>
-                <WeightChart points={weightChart.points} />
+                <WeightChart
+                  points={weightChart.points}
+                  accessibilityLabel={summarizeWeightTrend(weightChart.exerciseName, weightChart.points)}
+                />
                 <Text className="text-ink-muted">
                   {weightChart.points[0].weightKg}kg → {weightChart.points[weightChart.points.length - 1].weightKg}kg
                 </Text>
