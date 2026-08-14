@@ -8,11 +8,11 @@ to the cloud when you're back online.
 
 ## Status
 
-🚧 Early build. Day 9 of a day-by-day build: repo scaffold through exercise
-substitution, plus in-app YouTube video playback for exercises with a link
-attached, are in. Auto-recommended video search is deferred until cloud
-sync (Day 10) exists to proxy it through. Sync, gamification, and AI chat
-are still ahead. See
+🚧 Early build. Day 11 of a day-by-day build: repo scaffold through
+cloud account sync and gamification (streaks, monthly goals, badges) are
+in. Auto-recommended video search is still deferred until it has a
+YouTube Data API key to call. Notifications and the AI chat coach are
+still ahead. See
 [`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
 
 ## Planned features

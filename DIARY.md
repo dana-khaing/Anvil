@@ -442,3 +442,73 @@ rendering with no logic that a unit test wouldn't already catch. Still
 the right thing to set up simulator UI automation before it blocks a day
 that actually needs it — restating Day 5's note since it's now blocked
 three features in a row.
+
+## 2025-09-26 — Gamification
+
+Built streaks, a monthly goal, and badges on top of the `streaks`/`goals`
+tables that have existed since Day 3 but were unused until now — no schema
+change needed today. Kept all three as one cohesive `progress-store.ts`
+rather than three separate stores, since they're consumed together on one
+screen and share the same underlying data (completed session dates); three
+files would have meant three places re-deriving the same "which sessions
+count" query.
+
+Streak math (`updateStreakForCompletion`) is deliberately calendar-day
+based, not session-based: a second workout on the same day is a no-op
+(doesn't inflate the streak), the very next calendar day increments,
+anything else resets to 1, and `longestStreak` only ever grows. Compares
+`YYYY-MM-DD` strings via `Date.UTC` day-diffing rather than raw
+millisecond subtraction between `Date` objects, specifically to avoid a
+DST-related off-by-one — a 23-or-25-hour "day" near a clock change would
+otherwise round to the wrong day gap. 6 unit tests cover first-ever
+workout, same-day repeat, next-day increment, a new record raising
+`longestStreak`, a gap resetting `currentStreak` while `longestStreak`
+holds, and a reset across a month boundary specifically (to catch any
+lingering month-arithmetic assumption in the day-diff).
+
+Badges are computed, not stored: a fixed table of six thresholds
+(`totalWorkouts`/`longestStreak`) evaluated fresh from data that's already
+tracked, rather than a new `badges` table with its own earned-state to
+keep in sync. Simpler and can't drift from the underlying stats by
+construction — the tradeoff is no "earned on" timestamp for a specific
+unlock date, which nothing in the plan actually asks for.
+
+Scoped goals to monthly only, not daily-and-monthly as the README lists.
+A literal daily target (e.g. "1 workout today") would just be a second,
+redundant way of asking what the streak already answers — the honest
+version of "daily goal" for this app *is* the streak. Monthly is the piece
+that adds real information the streak doesn't have (total volume across
+the month, independent of consecutive-day discipline).
+
+Wired the streak update at the one real completion point:
+`workout-session-store.ts`'s `finishExercise`, right where a session
+flips to `completed`, calls `useProgressStore.getState().recordWorkoutCompletion(finishedAt)`
+directly rather than making the Today screen responsible for noticing the
+transition and calling it separately — the completion event and the
+streak update should be impossible to get out of sync, and re-deriving
+"did the session just complete" in the UI layer risked exactly that kind
+of drift. Noticed and fixed a small pre-existing wrinkle while touching
+this code: the session-completion write and the local state update were
+each calling `new Date().toISOString()` separately, so the DB row and the
+in-memory session could carry a few milliseconds apart — now computed
+once and reused for both.
+
+Verification hit the same simulator-automation wall as Days 4/5/8/10, plus
+a new dead end: tried cold-launching with a `pulseforge://progress` deep
+link argument on `simctl launch` hoping to land directly on the new tab
+(no confirmation dialog on a cold, not-yet-running launch), but it's
+ignored — `simctl launch`'s trailing arguments are process argv, not a URL
+open event. `simctl openurl` while already foregrounded just errors
+outright (`LSApplicationWorkspaceErrorDomain` -115), worse than Day 5's
+stuck-dialog experience. Fell back to the Day 6 pattern instead: seeded a
+completed session, a streak row, and a monthly goal directly into the
+simulator's SQLite file, then confirmed indirectly — relaunching showed
+the Today screen correctly re-deriving a fresh session for the routine's
+one day (`resolveNextDay`'s wraparound, live, against the seeded
+completed-session row), which is downstream of the exact same data
+`progress-store` reads. Didn't get an actual screenshot of the Progress
+tab rendering real streak/goal/badge data; leaning on the 14 unit tests
+covering every piece of logic behind it instead. Simulator UI automation
+is now four features running without it — worth actually setting up
+before Day 12's notification permissions flow, which has no
+DB-manipulation workaround at all.
