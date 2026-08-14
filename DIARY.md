@@ -57,3 +57,49 @@ light/dark `Colors` object now superseded by the NativeWind tokens.
 
 Deferred: real app icon/logo — still Expo's placeholder. Not blocking; can
 land whenever branding work happens.
+
+## 2025-08-28 — Local offline data layer
+
+Planned to use WatermelonDB for local storage (per the original tech
+foundation), but building it out surfaced a real blocker: it has no Expo
+config plugin and needs manual edits to native `MainApplication`/`AppDelegate`
+code that Expo's managed prebuild would silently wipe every time the native
+project regenerates — and its changelog doesn't confirm React Native
+0.86/New Architecture support. Switched to `expo-sqlite` (Expo's own
+first-party, fully-autolinked SQLite module) with Drizzle ORM, which
+officially supports `expo-sqlite` as a driver. Trade-off: no WatermelonDB-
+style reactive observables, so Zustand stores re-query explicitly after
+mutations instead of updating themselves automatically — `useExerciseLibraryStore`
+establishes that pattern for the stores still to come.
+
+Modeled the schema around what the app actually needs to track: `profiles`
+(height/weight/goal/notification prefs, single local row until accounts land),
+a static `exercises` catalog (seeded, not user-editable — equipment tag +
+JSON-encoded alternative-exercise ids for the Day 8 substitution feature),
+`routines` → `routine_days` → `routine_exercises` (the user's actual plan,
+mirroring the "D1 - Chest and Tricep..." note format: weight/reps/sets/video
+per exercise), and `workout_sessions` → `set_logs` for what actually happened
+in a session, including which exercise variant was used if substituted.
+`streaks`/`goals` are separate small tables for the gamification feature.
+
+Seeded ~50 exercises across all major muscle groups, each tagged with
+equipment and cross-linked alternatives (e.g. barbell/dumbbell/machine bench
+press all point at each other), plus three ready-made split templates —
+Push/Pull/Legs, Upper/Lower, and a 6-day Bro Split whose Day 1 deliberately
+matches the "D1 - Chest and Tricep" example from the original note format.
+Added a data-integrity test that checks every alternative-exercise reference
+actually exists in the catalog and that nothing lists itself as its own
+alternative — caught this would otherwise fail silently at runtime.
+
+Migrations run via Drizzle's `useMigrations` hook on launch, gating the
+splash-screen fade-out on migrations *and* the exercise-library seed
+finishing, so the app never shows an empty screen before data is ready.
+
+Operational note for future me: after the `expo-sqlite` rebuild, the
+simulator briefly showed Day 2's tab-bar bug again (icons stacked, no
+card/glass styling) even after a full app terminate+relaunch. Turned out to
+be a stale Metro/Watchman cache — likely confused by the amount of git
+history rewriting (resets, cherry-picks) earlier in the build, not a real
+regression. `watchman watch-del-all` + `expo start --clear` fixed it
+immediately. Worth trying that first if styling looks broken for no reason
+after a native rebuild.

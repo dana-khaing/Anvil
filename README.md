@@ -8,10 +8,10 @@ to the cloud when you're back online.
 
 ## Status
 
-🚧 Early build. Day 2 of a day-by-day build: repo scaffold, design tokens,
-base UI kit, and a 5-tab navigation shell (Today / Routines / Progress /
-Chat / Profile) with placeholder screens — no real features yet. See
-[`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
+🚧 Early build. Day 3 of a day-by-day build: repo scaffold, design tokens,
+UI kit, navigation shell, and the local offline data layer (SQLite schema +
+seeded exercise library) are in — no real screens wired to real data yet.
+See [`DIARY.md`](./DIARY.md) for a running log of what's been built and why.
 
 ## Planned features
 
@@ -34,7 +34,7 @@ Chat / Profile) with placeholder screens — no real features yet. See
 | Mobile client | React Native (Expo, TypeScript), Expo Router |
 | Styling / animation | NativeWind (Tailwind), Reanimated 3, `react-native-skia` |
 | State | Zustand |
-| Local offline storage | WatermelonDB (SQLite) |
+| Local offline storage | `expo-sqlite` + Drizzle ORM |
 | Backend | Supabase (Postgres, Auth, Row Level Security, Edge Functions) |
 | AI coach | Gemini API, proxied through a Supabase Edge Function |
 | Video | YouTube IFrame Player API via `react-native-youtube-iframe` (in-app only) |
@@ -64,8 +64,8 @@ pnpm install
 pnpm start          # launches Expo for the app/ package
 ```
 
-Once WatermelonDB lands, the app needs a custom `expo-dev-client` build —
-plain Expo Go won't work after that point (native module).
+The app needs a custom `expo-dev-client` build — plain Expo Go doesn't work
+once native modules (Skia, `expo-sqlite`, ...) are wired in.
 
 ## License
 
