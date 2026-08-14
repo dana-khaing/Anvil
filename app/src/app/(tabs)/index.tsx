@@ -1,11 +1,13 @@
 import { router } from 'expo-router';
-import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SubstitutionPicker } from '@/components/workout/substitution-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useRoutinesStore } from '@/stores/routines-store';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 
@@ -17,14 +19,23 @@ export default function TodayScreen() {
   const today = useWorkoutSessionStore((state) => state.today);
   const session = useWorkoutSessionStore((state) => state.session);
   const completedExerciseIds = useWorkoutSessionStore((state) => state.completedExerciseIds);
+  const substitution = useWorkoutSessionStore((state) => state.substitution);
   const sessionLoaded = useWorkoutSessionStore((state) => state.loaded);
   const loadSession = useWorkoutSessionStore((state) => state.load);
   const startSession = useWorkoutSessionStore((state) => state.startSession);
   const finishExercise = useWorkoutSessionStore((state) => state.finishExercise);
+  const substituteExercise = useWorkoutSessionStore((state) => state.substitute);
+  const clearSubstitution = useWorkoutSessionStore((state) => state.clearSubstitution);
+
+  const loadLibrary = useExerciseLibraryStore((state) => state.load);
+  const alternativesFor = useExerciseLibraryStore((state) => state.alternativesFor);
+
+  const [showSubstitutePicker, setShowSubstitutePicker] = useState(false);
 
   useEffect(() => {
     loadRoutines();
-  }, [loadRoutines]);
+    loadLibrary();
+  }, [loadRoutines, loadLibrary]);
 
   useEffect(() => {
     if (routinesLoaded) loadSession(days);
@@ -58,6 +69,11 @@ export default function TodayScreen() {
   const progress = total === 0 ? 0 : completedCount / total;
   const currentExercise = today.exercises.find((exercise) => !completedExerciseIds.has(exercise.id));
   const isComplete = session?.status === 'completed';
+
+  const activeSubstitution =
+    currentExercise && substitution?.forRoutineExerciseId === currentExercise.id ? substitution : null;
+  const displayName = activeSubstitution?.exercise.name ?? currentExercise?.exercise.name;
+  const displayTargets = activeSubstitution?.adjusted ?? currentExercise;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -97,28 +113,60 @@ export default function TodayScreen() {
             </Card>
           )}
 
-          {session && !isComplete && currentExercise && (
+          {session && !isComplete && currentExercise && showSubstitutePicker && (
+            <Card>
+              <SubstitutionPicker
+                alternatives={alternativesFor(currentExercise.exerciseId)}
+                onSelect={(exercise) => {
+                  substituteExercise(currentExercise.id, exercise);
+                  setShowSubstitutePicker(false);
+                }}
+                onCancel={() => setShowSubstitutePicker(false)}
+              />
+            </Card>
+          )}
+
+          {session && !isComplete && currentExercise && !showSubstitutePicker && displayTargets && (
             <Card className="gap-4">
               <View>
-                <Text className="text-xs uppercase tracking-wide text-ink-faint">
-                  Exercise {completedCount + 1} of {total}
-                </Text>
-                <Text className="mt-1 text-2xl font-semibold text-ink">
-                  {currentExercise.exercise.name}
-                </Text>
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs uppercase tracking-wide text-ink-faint">
+                    Exercise {completedCount + 1} of {total}
+                  </Text>
+                  {activeSubstitution && (
+                    <Pressable onPress={clearSubstitution}>
+                      <Text className="text-xs text-pulse-400">Use original</Text>
+                    </Pressable>
+                  )}
+                </View>
+                <Text className="mt-1 text-2xl font-semibold text-ink">{displayName}</Text>
+                {activeSubstitution && (
+                  <Text className="mt-0.5 text-xs text-ink-faint">
+                    Swapped for {currentExercise.exercise.name}
+                  </Text>
+                )}
               </View>
               <View className="flex-row gap-6">
                 <Stat
                   label="Weight"
-                  value={currentExercise.targetWeightKg ? `${currentExercise.targetWeightKg}kg` : 'Body'}
+                  value={displayTargets.targetWeightKg ? `${displayTargets.targetWeightKg}kg` : 'Body'}
                 />
                 <Stat
                   label="Reps"
-                  value={`${currentExercise.targetRepsMin ?? '-'}-${currentExercise.targetRepsMax ?? '-'}`}
+                  value={`${displayTargets.targetRepsMin ?? '-'}-${displayTargets.targetRepsMax ?? '-'}`}
                 />
-                <Stat label="Sets" value={String(currentExercise.targetSets)} />
+                <Stat label="Sets" value={String(displayTargets.targetSets)} />
               </View>
-              <Button onPress={() => finishExercise(currentExercise.id)}>Finished</Button>
+              <View className="flex-row gap-3">
+                <View className="flex-1">
+                  <Button variant="secondary" onPress={() => setShowSubstitutePicker(true)}>
+                    Swap
+                  </Button>
+                </View>
+                <View className="flex-1">
+                  <Button onPress={() => finishExercise(currentExercise.id)}>Finished</Button>
+                </View>
+              </View>
             </Card>
           )}
         </View>
