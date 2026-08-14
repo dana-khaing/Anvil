@@ -15,6 +15,13 @@
       "when": 1786724158988,
       "tag": "0001_fearless_fallen_one",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786728489612,
+      "tag": "0002_exotic_glorian",
+      "breakpoints": true
     }
   ]
 }

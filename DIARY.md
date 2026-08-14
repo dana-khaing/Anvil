@@ -582,3 +582,53 @@ date-math functions) as the whole story for the actual notification
 scheduling logic. Simulator UI automation has now blocked real
 tap-through verification on five separate days (4, 5, 8, 10, 12) — it's
 past due.
+
+## 2025-10-03 — Gemini AI chat
+
+Added a local-only `chat_messages` table (role/content/createdAt, plain
+`CREATE TABLE` migration — no populated-table restriction to work around
+this time, unlike Day 10) and a Chat tab: message list, text input,
+sends through a new Supabase Edge Function (`supabase/functions/chat`)
+rather than calling Gemini directly from the client, keeping the API key
+server-side. Chat history is deliberately not one of the synced tables —
+it's device-local scratch, not data worth a conflict-resolution story.
+
+`buildRoutineContext` (4 unit tests) turns the user's profile and active
+routine into a plain-text summary sent alongside every message, so the
+coach answers about the user's actual plan ("your first push day exercise
+is Barbell Bench Press at 60kg") instead of generic advice — this is
+what makes it a routine coach and not a generic chatbot wrapper.
+
+Real, evidenced surprise building this: Gemini's `generateContent`
+endpoint is gone. `models/gemini-2.5-flash` 404s with "no longer
+available to new users... use the Interactions API" — Google shipped a
+genuinely different API surface (GA'd 2026-06-22) that restructures a
+conversation as a `steps` timeline (`user_input`/`model_output`/`thought`
+step objects) instead of `role: user/model` content blobs, and the actual
+working endpoint (`/v1beta/interactions`) doesn't match what an
+AI-generated summary of the migration guide first suggested
+(`/v1beta2/interactions`, a 404 with an empty body — looked like a
+plausible URL, wasn't real). Same lesson `AGENTS.md` already states for
+Expo, apparently now just as true for Gemini: didn't fully trust a
+one-shot doc summary either, and went back for the literal quoted
+endpoint from the actual reference page before it worked. Picked
+`gemini-3.6-flash` over the also-current `gemini-2.5-flash-lite` for the
+better answer quality on what's meant to be a genuine coaching
+conversation, not a low-latency utility call.
+
+Verification here beat every other day so far, for a specific reason:
+unlike a mobile UI tap, an Edge Function is directly `curl`-able. Deployed
+for real (`supabase functions deploy chat`) and round-tripped it three
+times against the live Gemini API before trusting the client code: a
+plain single-turn question, a multi-turn conversation (confirming
+"next time" in turn 3 correctly resolved against turn 2's bench-press
+answer), and routine-context grounding (fed it the same "60kg, 8-10 reps"
+context `buildRoutineContext` produces — got back concrete progressive-
+overload advice citing that exact weight, not a generic answer). That's
+the strongest end-to-end verification of any feature since Day 1, and it
+came from the one part of this feature that *isn't* blocked by the
+simulator-automation gap. The client-side chat screen itself is back to
+the usual limitation — confirmed the app boots cleanly on the new
+migration (chat_messages table present, all three migrations applied)
+but couldn't tap into the Chat tab to see it rendered live; leaning on
+typecheck/lint/the 4 new unit tests/70 total passing for that half.
