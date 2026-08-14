@@ -332,3 +332,113 @@ as `expo-haptics` in Day 8 — the pure `extractYoutubeVideoId` function lives
 in the same file as the component per the established number-field.tsx
 pattern, but the component import alone pulls in the native WebView module,
 which isn't mocked under Jest by default.
+
+## 2025-09-22 — Cloud account + sync
+
+Created a real Supabase project via CLI (`supabase projects create`,
+authenticated session already logged in) rather than fabricating
+connection details — ref `rldzgxehjnvzyqpttwpm`, `eu-west-1`, under the
+same org as this account's other projects. Wrote the Postgres schema as a
+proper migration (`supabase/migrations/..._init_schema.sql`) mirroring the
+six syncable local tables (the exercise catalog stays local-only — it's
+static seed data shipped in the app, nothing to sync), every table scoped
+by `user_id` with RLS policies restricting access to `auth.uid() =
+user_id`, and pushed it with `supabase db push` — confirmed all six tables
+exist on the actual remote database afterward, not just assumed the push
+succeeded.
+
+Added `remote_id` (nullable, set once a row is first pushed) and
+`updated_at` columns to the local schema for every syncable table, via a
+proper Drizzle migration — SQLite's `DEFAULT (current_timestamp)` only
+fires on `INSERT`, so anything that mutates a row after creation needs to
+set `updated_at` itself (worth remembering for Day 14's refactor pass —
+`routines-store`'s `updateExercise` and `workout-session-store`'s session
+completion don't do this yet).
+
+**Honest scope call on "sync":** true continuous bidirectional multi-device
+merge is a genuinely hard problem (conflict resolution, tombstones for
+deletes, FK remapping across devices) — not a one-day feature done right.
+Built what's actually valuable and honestly deliverable: a "back up and
+restore" sync. Signing in pushes every local row that doesn't have a
+`remote_id` yet (parent-to-child order: routines → days → exercises →
+sessions → set logs, since each child needs its parent's freshly-minted
+Supabase UUID for the FK), and — only if this device has *no* local routine
+data at all — pulls the account's existing data down instead of pushing
+into it. That covers the two scenarios that actually matter for a solo
+fitness-tracker user: back up what you built, and restore it on a new
+phone. What it deliberately does not do: merge two devices that both have
+independent local edits, or handle a delete on one device while the other
+still has the row. Documented rather than silently shipped as if it were
+full sync.
+
+Auth is Supabase email/password, session persisted via
+`@react-native-async-storage/async-storage` (required by `supabase-js` for
+RN — without it, sessions don't survive an app restart). Local-only stays
+the default and fully-functional mode; the Profile tab's sign-in form is
+opt-in, matching the "guest/local-only mode" requirement from the plan.
+
+Verified the actual database, not just the code: ran `supabase db query`
+against the live project to confirm the six tables and their columns exist
+post-migration, matching the pattern from every other day of not trusting a
+tool's "success" output without an independent check.
+
+That check covered the remote side but missed the local one: launching the
+app on the simulator (which already had Day 4–9 test data — a real profile,
+routine, and session) crashed on boot with `Database error: Failed to run
+the query 'ALTER TABLE profiles ADD updated_at text DEFAULT
+(current_timestamp) NOT NULL;'`. Root cause, confirmed directly against the
+SQLite CLI before touching the fix: SQLite refuses `ALTER TABLE ADD COLUMN`
+with a non-constant default (`CURRENT_TIMESTAMP`, `random()`, etc.) on any
+table that already has rows — regardless of `NOT NULL` — and only lifts the
+restriction when the table is empty. That's exactly backwards from what
+this feature needs: a fresh install hits an empty `profiles` table and
+would've sailed through, while every device that had already been used
+through Day 9 (i.e. every real device, once this ships) would crash on
+launch. `drizzle-kit`'s SQLite generator emitted the naive `ALTER TABLE`
+form and doesn't fall back to a rebuild for this case.
+
+Fixed by hand-writing the migration using SQLite's supported table-rebuild
+procedure for the five tables that gained `updated_at` (`profiles`,
+`routines`, `routine_days`, `routine_exercises`, `workout_sessions`):
+create a `__new_<table>` with the final column set, `INSERT ... SELECT`
+across with `updated_at` backfilled to `current_timestamp` for existing
+rows, drop the old table, rename. `set_logs` only gained `remote_id` (no
+`updated_at` in its schema), and a plain nullable `ADD COLUMN` for that is
+unaffected by the restriction, so it kept the simple `ALTER TABLE` form.
+Validated both paths before trusting it: copied the simulator's actual
+`pulseforge.db` and replayed the rewritten migration against it
+(succeeded, all 6 rows across the 5 tables preserved with real backfilled
+timestamps, `id`s unchanged), and separately ran migrations 0000+0001
+against a brand-new empty database to confirm fresh installs still work
+and that a subsequent insert still picks up the real `DEFAULT
+(current_timestamp)` automatically (table-level defaults in `CREATE TABLE`
+aren't subject to the `ALTER TABLE` restriction, so the rebuild's new
+tables keep working exactly like the original schema for all future
+inserts).
+
+Hit Day 3's stale-Metro-cache bug again getting the fix to actually load —
+relaunching the app kept showing the byte-identical old error message even
+after the SQL file was already rewritten on disk, because Metro's bundler
+cache hadn't picked up the change. Same remedy as Day 3: killed the running
+Metro process, `watchman watch-del-all`, `expo start --clear`. Confirmed
+the real fix this time by watching Metro report a genuine rebuild ("iOS
+Bundled ... entry.js (2247 modules)") before checking the simulator again
+— app now boots straight past onboarding into the Today screen with the
+existing routine/session data intact ("D1 - Chest and Tricep", Barbell
+Bench Press 60kg 8-10x3, exactly the Day 6 test data). Worth escalating
+this from a one-off Day 3 fluke to a pattern: a stale Metro cache surviving
+a full app terminate+relaunch seems to specifically follow native-adjacent
+changes (a rebuild-heavy SQLite migration this time, a native module
+install last time), not just any code change.
+
+Couldn't tap through to the Profile tab itself for a live sign-in/sync
+run — same simulator-automation gap noted on Days 4/5/8 (no `idb`, no
+accessibility permissions for `osascript`). Leaned on the same fallback as
+those days: full test suite (44 passing across 8 suites, up from 36),
+typecheck, and lint all green, plus the direct DB-level verification above
+standing in for what a tap-through would otherwise confirm about the data
+layer. The screen itself is simple, prop/store-driven conditional
+rendering with no logic that a unit test wouldn't already catch. Still
+the right thing to set up simulator UI automation before it blocks a day
+that actually needs it — restating Day 5's note since it's now blocked
+three features in a row.

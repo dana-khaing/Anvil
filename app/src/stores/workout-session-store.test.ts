@@ -4,7 +4,15 @@ import { adjustForSubstitution, resolveNextDay, type SubstitutionTargets } from 
 jest.mock('@/db/client', () => ({ db: {} }));
 
 function makeDay(id: number, label: string): DayWithExercises {
-  return { id, label, routineId: 1, dayOrder: id, exercises: [] };
+  return {
+    id,
+    label,
+    routineId: 1,
+    dayOrder: id,
+    exercises: [],
+    remoteId: null,
+    updatedAt: '2025-01-01T00:00:00.000Z',
+  };
 }
 
 describe('resolveNextDay', () => {
