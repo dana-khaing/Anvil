@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { NumberField, parseOptionalNumber } from '@/components/ui/number-field';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { colors } from '@/constants/colors';
+import { searchExerciseVideos, type VideoSearchResult } from '@/lib/video-search';
 import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useRoutinesStore } from '@/stores/routines-store';
 
@@ -30,6 +32,9 @@ export default function ExerciseFormScreen() {
   const [sets, setSets] = useState(existingEntry?.targetSets?.toString() ?? '3');
   const [videoUrl, setVideoUrl] = useState(existingEntry?.videoUrl ?? '');
   const [saving, setSaving] = useState(false);
+  const [videoResults, setVideoResults] = useState<VideoSearchResult[] | null>(null);
+  const [searchingVideos, setSearchingVideos] = useState(false);
+  const [videoSearchError, setVideoSearchError] = useState(false);
 
   useEffect(() => {
     loadLibrary();
@@ -42,6 +47,19 @@ export default function ExerciseFormScreen() {
   }, [libraryExercises, search]);
 
   const selectedExercise = libraryExercises.find((exercise) => exercise.id === exerciseId);
+
+  const suggestVideos = async () => {
+    if (!selectedExercise) return;
+    setSearchingVideos(true);
+    setVideoSearchError(false);
+    const results = await searchExerciseVideos(selectedExercise.name);
+    setSearchingVideos(false);
+    if (results.length === 0) {
+      setVideoSearchError(true);
+      return;
+    }
+    setVideoResults(results);
+  };
 
   const save = async () => {
     if (!exerciseId) return;
@@ -140,6 +158,45 @@ export default function ExerciseFormScreen() {
               accessibilityLabel="Video link (optional)"
               className="rounded-xl border border-border bg-surface-raised px-4 py-3.5 text-base text-ink"
             />
+            <Pressable
+              accessibilityRole="button"
+              onPress={suggestVideos}
+              disabled={searchingVideos}
+              className="mt-2 self-start">
+              <Text className="text-sm text-pulse-400">
+                {searchingVideos ? 'Searching…' : 'Suggest videos'}
+              </Text>
+            </Pressable>
+            {videoSearchError && (
+              <Text className="mt-1 text-sm text-ink-faint">
+                No video suggestions available right now.
+              </Text>
+            )}
+            {videoResults && (
+              <FlatList
+                horizontal
+                data={videoResults}
+                keyExtractor={(item) => item.videoId}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingTop: 10 }}
+                renderItem={({ item }) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Use "${item.title}" as the video`}
+                    onPress={() => setVideoUrl(item.videoUrl)}
+                    className="w-36 overflow-hidden rounded-lg border border-border bg-surface-raised">
+                    <Image
+                      source={{ uri: item.thumbnailUrl }}
+                      style={{ width: '100%', aspectRatio: 16 / 9 }}
+                      contentFit="cover"
+                    />
+                    <Text numberOfLines={2} className="px-2 py-1.5 text-xs text-ink-muted">
+                      {item.title}
+                    </Text>
+                  </Pressable>
+                )}
+              />
+            )}
           </View>
         </View>
 
