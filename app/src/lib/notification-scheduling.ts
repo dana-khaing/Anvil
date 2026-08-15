@@ -1,0 +1,67 @@
+import * as Notifications from 'expo-notifications';
+
+export const DAILY_TIPS = [
+  'Progressive overload beats a perfect program — add a little weight or a rep when a set feels easy.',
+  'A missed set matters less than a missed habit. Show up, even for a short session.',
+  'Warm up the specific movement, not just your heart rate — a few light reps of the first lift goes a long way.',
+  'Sleep is a training variable. An extra hour does more for tomorrow\'s session than an extra set today.',
+  'Track the number, not the feeling — "felt hard" doesn\'t tell future-you what to beat next time.',
+  'Form breakdown is the deload signal. If your last rep looks different from your first, that\'s the set.',
+  'Protein timing matters far less than protein total. Hit the day\'s number however it fits.',
+  'Rest between hard sets is for your nervous system, not just your lungs — don\'t rush the big lifts.',
+  'A short workout you finish beats a long one you skip. Scale it down, don\'t skip it.',
+  'Substituting an exercise isn\'t giving up on the plan — it\'s how you stick to it when equipment is busy.',
+];
+
+/** Deterministic, offline day-index into the tips list — no two calls for the same date disagree. */
+export function tipForDate(date: Date, tips: string[] = DAILY_TIPS): string {
+  const dayNumber = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
+  return tips[((dayNumber % tips.length) + tips.length) % tips.length];
+}
+
+export type ReminderPlanEntry = { identifier: string; date: Date; body: string };
+
+const REMINDER_PREFIX = 'daily-reminder-';
+const REMINDER_DAYS_AHEAD = 14;
+const REMINDER_HOUR = 8;
+
+/** The next `days` daily-reminder notifications to schedule, one per calendar day at `hour:00` local time. */
+export function buildDailyReminderPlan(
+  startDate: Date,
+  days: number,
+  hour: number,
+  tips: string[] = DAILY_TIPS
+): ReminderPlanEntry[] {
+  return Array.from({ length: days }, (_, offset) => {
+    const date = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + offset, hour, 0, 0, 0);
+    const identifier = `daily-reminder-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return { identifier, date, body: tipForDate(date, tips) };
+  });
+}
+
+/**
+ * Cancels and re-schedules the rolling `REMINDER_DAYS_AHEAD`-day window of daily
+ * reminders. Shared by the notifications store (explicit enable / cold-launch
+ * top-up) and the background task (see notifications-background-task.ts) so
+ * there's one definition of "what topping up the queue means" regardless of
+ * which of those two triggers it.
+ */
+export async function scheduleDailyReminders(): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((notification) => notification.identifier.startsWith(REMINDER_PREFIX))
+      .map((notification) => Notifications.cancelScheduledNotificationAsync(notification.identifier))
+  );
+
+  const plan = buildDailyReminderPlan(new Date(), REMINDER_DAYS_AHEAD, REMINDER_HOUR);
+  await Promise.all(
+    plan.map((entry) =>
+      Notifications.scheduleNotificationAsync({
+        identifier: entry.identifier,
+        content: { title: 'Time to train', body: entry.body },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: entry.date },
+      })
+    )
+  );
+}

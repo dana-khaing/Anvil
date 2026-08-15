@@ -9,6 +9,7 @@ import '@/global.css';
 import { AnimatedSplashOverlay } from '@/components/splash-overlay';
 import { db } from '@/db/client';
 import { seedExerciseLibrary } from '@/db/seed';
+import '@/lib/notifications-background-task';
 import { useAuthStore } from '@/stores/auth-store';
 import { useNotificationsStore } from '@/stores/notifications-store';
 import { useProfileStore } from '@/stores/profile-store';
