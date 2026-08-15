@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
@@ -50,7 +50,7 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
     const dayRows = await db
       .select()
       .from(routineDays)
-      .where(eq(routineDays.routineId, activeRoutine.id))
+      .where(and(eq(routineDays.routineId, activeRoutine.id), isNull(routineDays.deletedAt)))
       .orderBy(routineDays.dayOrder);
 
     const days: DayWithExercises[] = [];
@@ -59,7 +59,7 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
         .select({ routineExercise: routineExercises, exercise: exercises })
         .from(routineExercises)
         .innerJoin(exercises, eq(routineExercises.exerciseId, exercises.id))
-        .where(eq(routineExercises.routineDayId, day.id))
+        .where(and(eq(routineExercises.routineDayId, day.id), isNull(routineExercises.deletedAt)))
         .orderBy(routineExercises.orderIndex);
 
       days.push({
@@ -92,7 +92,14 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   },
 
   deleteDay: async (dayId) => {
-    await db.delete(routineDays).where(eq(routineDays.id, dayId));
+    // Soft delete (Day 30): the local FK cascade still exists at the DB
+    // level for a hard delete, but a tombstone UPDATE doesn't trigger it,
+    // so child exercises are tombstoned explicitly here to keep them from
+    // sync-pulling back down on another device after their parent day is
+    // gone on this one.
+    const deletedAt = sql`(current_timestamp)`;
+    await db.update(routineExercises).set({ deletedAt, updatedAt: deletedAt }).where(eq(routineExercises.routineDayId, dayId));
+    await db.update(routineDays).set({ deletedAt, updatedAt: deletedAt }).where(eq(routineDays.id, dayId));
     await get().load();
   },
 
@@ -119,7 +126,8 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   },
 
   deleteExercise: async (id) => {
-    await db.delete(routineExercises).where(eq(routineExercises.id, id));
+    const deletedAt = sql`(current_timestamp)`;
+    await db.update(routineExercises).set({ deletedAt, updatedAt: deletedAt }).where(eq(routineExercises.id, id));
     await get().load();
   },
 }));
