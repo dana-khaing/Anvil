@@ -60,22 +60,27 @@ export default function RoutineDayScreen() {
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={{ gap: 10 }}
           renderItem={({ item }) => (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() =>
-                router.push({
-                  pathname: '/routines/exercise-form',
-                  params: { dayId, entryId: String(item.id) },
-                })
-              }
-              className="flex-row items-center justify-between rounded-2xl border border-border bg-surface-raised p-4">
-              <View className="flex-1 pr-3">
+            // A plain View, not a Pressable: the two icon buttons below are
+            // its siblings, not its descendants, so VoiceOver doesn't get
+            // nested/overlapping interactive elements sharing one hit area.
+            // The row's own "tap to edit" affordance is its own Pressable
+            // scoped to just the text block.
+            <View className="flex-row items-center justify-between rounded-2xl border border-border bg-surface-raised p-4">
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push({
+                    pathname: '/routines/exercise-form',
+                    params: { dayId, entryId: String(item.id) },
+                  })
+                }
+                className="flex-1 pr-3">
                 <Text className="text-base font-semibold text-ink">{item.exercise.name}</Text>
                 <Text className="mt-1 text-sm text-ink-muted">
                   {item.targetWeightKg ? `${item.targetWeightKg}kg` : 'Bodyweight'} · {item.targetRepsMin}
                   -{item.targetRepsMax} reps · {item.targetSets} sets
                 </Text>
-              </View>
+              </Pressable>
               {(item.videoUrl ?? item.exercise.defaultVideoUrl) && (
                 <Pressable
                   accessibilityRole="button"
@@ -93,7 +98,7 @@ export default function RoutineDayScreen() {
                 onPress={() => deleteExercise(item.id)}>
                 <Ionicons name="close-circle-outline" size={22} color={colors.inkFaint} />
               </Pressable>
-            </Pressable>
+            </View>
           )}
           ListEmptyComponent={
             loaded ? <Text className="text-ink-muted">No exercises yet — add one below.</Text> : null

@@ -79,6 +79,7 @@ export default function ProfileScreen() {
                   else disableNotifications();
                 }}
                 trackColor={{ true: colors.pulse500 }}
+                accessibilityLabel="Notifications"
               />
             </View>
             {notificationsPermission === 'denied' && (
@@ -95,7 +96,7 @@ export default function ProfileScreen() {
             <Text className="text-ink">{session.user.email}</Text>
 
             <View className="flex-row items-center justify-between">
-              <Text className="text-ink-muted">
+              <Text className="text-ink-muted" accessibilityLiveRegion="polite">
                 {syncStatus === 'syncing'
                   ? 'Syncing...'
                   : syncStatus === 'error'
@@ -149,7 +150,11 @@ export default function ProfileScreen() {
               accessibilityLabel="Password"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"
             />
-            {authError && <Text className="text-sm text-danger">{authError}</Text>}
+            {authError && (
+              <Text className="text-sm text-danger" accessibilityLiveRegion="polite">
+                {authError}
+              </Text>
+            )}
             <Button
               onPress={() => (mode === 'signIn' ? signIn(email, password) : signUp(email, password))}
               disabled={authLoading || !email || !password}>
