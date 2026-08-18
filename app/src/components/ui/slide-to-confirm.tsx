@@ -137,12 +137,11 @@ export function SlideToConfirm({
         className="absolute inset-y-0 left-0 rounded-full bg-pulse-500/25"
         style={fillStyle}
       />
-      <Animated.Text
-        pointerEvents="none"
-        className="text-center text-sm font-medium text-ink-muted"
-        style={labelStyle}>
-        {committing ? 'Finishing…' : label}
-      </Animated.Text>
+      <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
+        <Animated.Text className="text-center text-sm font-medium text-ink-muted" style={labelStyle}>
+          {committing ? 'Finishing…' : label}
+        </Animated.Text>
+      </View>
       <GestureDetector gesture={pan}>
         <Animated.View
           className="items-center justify-center rounded-full bg-pulse-500"
