@@ -7,6 +7,7 @@ import { SubstitutionPicker } from '@/components/workout/substitution-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { RestTimer } from '@/components/ui/rest-timer';
 import { SlideToConfirm } from '@/components/ui/slide-to-confirm';
 import { VideoPlayerSheet } from '@/components/ui/video-player-sheet';
 import { VideoThumbnail } from '@/components/ui/video-thumbnail';
@@ -22,11 +23,12 @@ export default function TodayScreen() {
   const today = useWorkoutSessionStore((state) => state.today);
   const session = useWorkoutSessionStore((state) => state.session);
   const completedExerciseIds = useWorkoutSessionStore((state) => state.completedExerciseIds);
+  const setsLoggedForCurrent = useWorkoutSessionStore((state) => state.setsLoggedForCurrent);
   const substitution = useWorkoutSessionStore((state) => state.substitution);
   const sessionLoaded = useWorkoutSessionStore((state) => state.loaded);
   const loadSession = useWorkoutSessionStore((state) => state.load);
   const startSession = useWorkoutSessionStore((state) => state.startSession);
-  const finishExercise = useWorkoutSessionStore((state) => state.finishExercise);
+  const logSet = useWorkoutSessionStore((state) => state.logSet);
   const substituteExercise = useWorkoutSessionStore((state) => state.substitute);
   const clearSubstitution = useWorkoutSessionStore((state) => state.clearSubstitution);
 
@@ -35,6 +37,7 @@ export default function TodayScreen() {
 
   const [showSubstitutePicker, setShowSubstitutePicker] = useState(false);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+  const [resting, setResting] = useState(false);
 
   useEffect(() => {
     loadRoutines();
@@ -136,12 +139,19 @@ export default function TodayScreen() {
             </Card>
           )}
 
-          {session && !isComplete && currentExercise && !showSubstitutePicker && displayTargets && (
+          {session && !isComplete && currentExercise && !showSubstitutePicker && resting && (
+            <Card>
+              <RestTimer onComplete={() => setResting(false)} />
+            </Card>
+          )}
+
+          {session && !isComplete && currentExercise && !showSubstitutePicker && !resting && displayTargets && (
             <Card className="gap-4">
               <View>
                 <View className="flex-row items-center justify-between">
                   <Text className="text-xs uppercase tracking-wide text-ink-faint">
-                    Exercise {completedCount + 1} of {total}
+                    Exercise {completedCount + 1} of {total} · Set {setsLoggedForCurrent + 1} of{' '}
+                    {displayTargets.targetSets}
                   </Text>
                   {activeSubstitution && (
                     <Pressable accessibilityRole="button" onPress={clearSubstitution}>
@@ -178,9 +188,15 @@ export default function TodayScreen() {
                 Change to Alternate exercise
               </Button>
               <SlideToConfirm
-                key={currentExercise.id}
-                onConfirm={() => finishExercise(currentExercise.id)}
-                accessibilityLabel={`Finish ${displayName}`}
+                key={`${currentExercise.id}-${setsLoggedForCurrent}`}
+                label={
+                  setsLoggedForCurrent + 1 < (displayTargets.targetSets ?? 1) ? 'Slide to finish set' : undefined
+                }
+                onConfirm={async () => {
+                  const result = await logSet(currentExercise.id);
+                  if (!result.sessionCompleted) setResting(true);
+                }}
+                accessibilityLabel={`Finish set ${setsLoggedForCurrent + 1} of ${displayName}`}
               />
             </Card>
           )}
