@@ -95,7 +95,7 @@ export default function ProgressScreen() {
                   ? 'Set a new target for this month.'
                   : "You don't have a goal set for this month yet."}
               </Text>
-              <NumberField label="Workouts this month" value={targetInput} onChangeText={setTargetInput} />
+              <NumberField label="Workouts this month" value={targetInput} onChangeText={setTargetInput} min={1} />
               <Button
                 onPress={async () => {
                   const target = parseOptionalNumber(targetInput);

@@ -87,8 +87,8 @@ export default function OnboardingScreen() {
               <Text className="mb-2 text-sm text-ink-muted">
                 Optional — helps tailor future recommendations. You can skip this.
               </Text>
-              <NumberField label="Height (cm)" value={heightCm} onChangeText={setHeightCm} />
-              <NumberField label="Weight (kg)" value={weightKg} onChangeText={setWeightKg} />
+              <NumberField label="Height (cm)" value={heightCm} onChangeText={setHeightCm} min={0} />
+              <NumberField label="Weight (kg)" value={weightKg} onChangeText={setWeightKg} min={0} step={0.5} />
             </View>
           )}
 
