@@ -101,6 +101,15 @@ export default function TodayScreen() {
           <ProgressRing progress={progress} size={64} strokeWidth={7} />
         </View>
 
+        {!session && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/routines/choose-day')}
+            className="mt-2 self-start">
+            <Text className="text-sm text-pulse-400">Choose a different day</Text>
+          </Pressable>
+        )}
+
         <View className="mt-4 gap-4">
           {total === 0 && (
             <Card>
@@ -115,7 +124,7 @@ export default function TodayScreen() {
               <Text className="text-ink-muted">
                 Ready for {today.label}? {total} exercise{total === 1 ? '' : 's'} today.
               </Text>
-              <Button onPress={startSession}>Start Workout</Button>
+              <Button onPress={() => startSession()}>Start Workout</Button>
             </Card>
           )}
 

@@ -12,6 +12,16 @@ export type RoutineExercise = typeof routineExercises.$inferSelect;
 export type DayExercise = RoutineExercise & { exercise: Exercise };
 export type DayWithExercises = RoutineDay & { exercises: DayExercise[] };
 
+/** Safely reads a day's muscleGroups JSON, tolerating malformed data -- same pattern as parseAlternativeIds. */
+export function parseMuscleGroups(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((group) => typeof group === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export type NewExerciseInput = {
   exerciseId: string;
   targetWeightKg: number | null;
@@ -27,7 +37,7 @@ type RoutinesState = {
   loaded: boolean;
   load: () => Promise<void>;
   ensureActiveRoutine: () => Promise<Routine>;
-  addDay: (label: string) => Promise<void>;
+  addDay: (label: string, muscleGroups: string[]) => Promise<void>;
   deleteDay: (dayId: number) => Promise<void>;
   addExercise: (dayId: number, input: NewExerciseInput) => Promise<void>;
   updateExercise: (id: number, input: Partial<NewExerciseInput>) => Promise<void>;
@@ -84,10 +94,15 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
     return created;
   },
 
-  addDay: async (label) => {
+  addDay: async (label, muscleGroups) => {
     const routine = await get().ensureActiveRoutine();
     const nextOrder = get().days.length;
-    await db.insert(routineDays).values({ routineId: routine.id, label, dayOrder: nextOrder });
+    await db.insert(routineDays).values({
+      routineId: routine.id,
+      label,
+      dayOrder: nextOrder,
+      muscleGroups: JSON.stringify(muscleGroups),
+    });
     await get().load();
   },
 

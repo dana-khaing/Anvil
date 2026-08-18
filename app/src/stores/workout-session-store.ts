@@ -1,4 +1,4 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
@@ -6,7 +6,7 @@ import { type Equipment } from '@/db/seed-data/exercises';
 import { setLogs, workoutSessions } from '@/db/schema';
 import { useNotificationsStore } from '@/stores/notifications-store';
 import { toCalendarDate, useProgressStore } from '@/stores/progress-store';
-import { type DayWithExercises, type Exercise } from '@/stores/routines-store';
+import { type DayWithExercises, type Exercise, parseMuscleGroups } from '@/stores/routines-store';
 
 export type WorkoutSession = typeof workoutSessions.$inferSelect;
 
@@ -26,6 +26,65 @@ export function resolveNextDay(
     : days.findIndex((day) => day.id === lastCompletedDayId);
   const nextIndex = lastIndex === -1 ? 0 : (lastIndex + 1) % days.length;
   return days[nextIndex];
+}
+
+export const REST_WINDOW_HOURS = 48;
+
+export type RestConflict = { sharedMuscleGroups: string[]; hoursRemaining: number };
+
+/**
+ * Whether `targetDay` shares a muscle-group tag with a day completed within
+ * `restWindowHours` of `now`. An untagged day (no muscleGroups chosen at
+ * creation) never conflicts -- there's nothing to compare. When multiple
+ * recent completions conflict, returns whichever has the most hours
+ * remaining (the most restrictive one).
+ */
+export function findRestConflict(
+  targetDay: DayWithExercises,
+  recentCompletions: { routineDayId: number; muscleGroups: string[]; finishedAt: string }[],
+  restWindowHours: number,
+  now: Date
+): RestConflict | null {
+  const targetGroups = new Set(parseMuscleGroups(targetDay.muscleGroups));
+  if (targetGroups.size === 0) return null;
+
+  let closest: RestConflict | null = null;
+  for (const completion of recentCompletions) {
+    const shared = completion.muscleGroups.filter((group) => targetGroups.has(group));
+    if (shared.length === 0) continue;
+
+    const hoursSince = (now.getTime() - new Date(completion.finishedAt).getTime()) / 3_600_000;
+    const hoursRemaining = restWindowHours - hoursSince;
+    if (hoursRemaining <= 0) continue;
+
+    if (!closest || hoursRemaining > closest.hoursRemaining) {
+      closest = { sharedMuscleGroups: shared, hoursRemaining };
+    }
+  }
+  return closest;
+}
+
+export type MuscleGroupCompletion = { routineDayId: number; muscleGroups: string[]; finishedAt: string };
+
+/** Completed sessions within the rest window, each paired with its day's muscle-group tags -- feeds findRestConflict. */
+export async function recentMuscleGroupCompletions(
+  days: DayWithExercises[],
+  restWindowHours: number,
+  now: Date
+): Promise<MuscleGroupCompletion[]> {
+  const cutoff = new Date(now.getTime() - restWindowHours * 3_600_000).toISOString();
+  const rows = await db
+    .select({ routineDayId: workoutSessions.routineDayId, finishedAt: workoutSessions.finishedAt })
+    .from(workoutSessions)
+    .where(and(eq(workoutSessions.status, 'completed'), gt(workoutSessions.finishedAt, cutoff)));
+
+  return rows
+    .filter((row): row is { routineDayId: number; finishedAt: string } => row.finishedAt !== null)
+    .map((row) => ({
+      routineDayId: row.routineDayId,
+      finishedAt: row.finishedAt,
+      muscleGroups: parseMuscleGroups(days.find((day) => day.id === row.routineDayId)?.muscleGroups ?? '[]'),
+    }));
 }
 
 export type SubstitutionTargets = {
@@ -96,7 +155,8 @@ type WorkoutSessionState = {
   substitution: ActiveSubstitution | null;
   loaded: boolean;
   load: (days: DayWithExercises[]) => Promise<void>;
-  startSession: () => Promise<void>;
+  /** Defaults to the current `today` when `day` is omitted -- pass a day explicitly to start a manually-picked one instead of the auto-resolved rotation. */
+  startSession: (day?: DayWithExercises, options?: { overrideRest?: boolean }) => Promise<void>;
   substitute: (routineExerciseId: number, alternative: Exercise) => void;
   clearSubstitution: () => void;
   logSet: (routineExerciseId: number) => Promise<LogSetResult>;
@@ -168,16 +228,26 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     set({ today: today ?? null, session, completedExerciseIds, setsLoggedForCurrent, substitution: null, loaded: true });
   },
 
-  startSession: async () => {
-    const { today } = get();
-    if (!today) return;
+  startSession: async (day, options) => {
+    const targetDay = day ?? get().today;
+    if (!targetDay) return;
 
     const [created] = await db
       .insert(workoutSessions)
-      .values({ routineDayId: today.id, status: 'in_progress' })
+      .values({
+        routineDayId: targetDay.id,
+        status: 'in_progress',
+        countsTowardStreak: !options?.overrideRest,
+      })
       .returning();
 
-    set({ session: created, completedExerciseIds: new Set(), setsLoggedForCurrent: 0, substitution: null });
+    set({
+      today: targetDay,
+      session: created,
+      completedExerciseIds: new Set(),
+      setsLoggedForCurrent: 0,
+      substitution: null,
+    });
   },
 
   substitute: (routineExerciseId, alternative) => {
@@ -233,7 +303,11 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         .set({ status: 'completed', finishedAt, updatedAt: sql`(current_timestamp)` })
         .where(eq(workoutSessions.id, session.id));
       set({ session: { ...session, status: 'completed', finishedAt } });
-      await useProgressStore.getState().recordWorkoutCompletion(finishedAt);
+      // Started as a rest-warning override: still a real, logged workout,
+      // just not one that advances streak/badges -- see recordWorkoutCompletion's callers.
+      if (session.countsTowardStreak) {
+        await useProgressStore.getState().recordWorkoutCompletion(finishedAt);
+      }
       await useNotificationsStore.getState().rescheduleReengagement(toCalendarDate(finishedAt));
     }
 

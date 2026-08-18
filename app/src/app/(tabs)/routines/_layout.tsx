@@ -6,6 +6,7 @@ export default function RoutinesStackLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="[dayId]" />
       <Stack.Screen name="exercise-form" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="choose-day" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

@@ -1,5 +1,10 @@
 import { type DayWithExercises } from './routines-store';
-import { adjustForSubstitution, resolveNextDay, type SubstitutionTargets } from './workout-session-store';
+import {
+  adjustForSubstitution,
+  findRestConflict,
+  resolveNextDay,
+  type SubstitutionTargets,
+} from './workout-session-store';
 
 jest.mock('@/db/client', () => ({ db: {} }));
 jest.mock('expo-notifications', () => ({
@@ -13,7 +18,7 @@ jest.mock('expo-notifications', () => ({
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
-function makeDay(id: number, label: string): DayWithExercises {
+function makeDay(id: number, label: string, muscleGroups: string[] = []): DayWithExercises {
   return {
     id,
     label,
@@ -21,6 +26,7 @@ function makeDay(id: number, label: string): DayWithExercises {
     dayOrder: id,
     exercises: [],
     remoteId: null,
+    muscleGroups: JSON.stringify(muscleGroups),
     updatedAt: '2025-01-01T00:00:00.000Z',
   };
 }
@@ -106,5 +112,48 @@ describe('adjustForSubstitution', () => {
       targetRepsMax: null,
       targetSets: 3,
     });
+  });
+});
+
+describe('findRestConflict', () => {
+  const now = new Date('2025-11-05T12:00:00.000Z');
+
+  it('conflicts when a recent completion shares a muscle-group tag', () => {
+    const chestDay = makeDay(1, 'Chest', ['chest', 'triceps']);
+    const completions = [{ routineDayId: 2, muscleGroups: ['chest'], finishedAt: '2025-11-04T12:00:00.000Z' }];
+
+    const conflict = findRestConflict(chestDay, completions, 48, now);
+    expect(conflict).not.toBeNull();
+    expect(conflict?.sharedMuscleGroups).toEqual(['chest']);
+    expect(conflict?.hoursRemaining).toBeCloseTo(24, 0);
+  });
+
+  it('does not conflict when no tags overlap', () => {
+    const legDay = makeDay(1, 'Legs', ['quads', 'hamstrings']);
+    const completions = [{ routineDayId: 2, muscleGroups: ['chest'], finishedAt: '2025-11-04T12:00:00.000Z' }];
+
+    expect(findRestConflict(legDay, completions, 48, now)).toBeNull();
+  });
+
+  it('clears once the rest window has fully elapsed', () => {
+    const chestDay = makeDay(1, 'Chest', ['chest']);
+    const completions = [{ routineDayId: 2, muscleGroups: ['chest'], finishedAt: '2025-11-03T00:00:00.000Z' }];
+
+    expect(findRestConflict(chestDay, completions, 48, now)).toBeNull();
+  });
+
+  it('conflicts with itself for the exact same day trained twice in a row', () => {
+    const chestDay = makeDay(1, 'Chest', ['chest']);
+    const completions = [{ routineDayId: 1, muscleGroups: ['chest'], finishedAt: '2025-11-05T10:00:00.000Z' }];
+
+    const conflict = findRestConflict(chestDay, completions, 48, now);
+    expect(conflict).not.toBeNull();
+  });
+
+  it('never conflicts for an untagged day', () => {
+    const untagged = makeDay(1, 'Full Body');
+    const completions = [{ routineDayId: 1, muscleGroups: [], finishedAt: '2025-11-05T10:00:00.000Z' }];
+
+    expect(findRestConflict(untagged, completions, 48, now)).toBeNull();
   });
 });
