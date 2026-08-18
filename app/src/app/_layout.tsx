@@ -3,6 +3,7 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import '@/global.css';
 
@@ -50,18 +51,20 @@ export default function RootLayout() {
   const ready = success && seeded && profileChecked && authChecked;
 
   return (
-    <ThemeProvider value={DarkTheme}>
-      <AnimatedSplashOverlay ready={ready} />
-      {ready && (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={profile !== null}>
-            <Stack.Screen name="(tabs)" />
-          </Stack.Protected>
-          <Stack.Protected guard={profile === null}>
-            <Stack.Screen name="onboarding" />
-          </Stack.Protected>
-        </Stack>
-      )}
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={DarkTheme}>
+        <AnimatedSplashOverlay ready={ready} />
+        {ready && (
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Protected guard={profile !== null}>
+              <Stack.Screen name="(tabs)" />
+            </Stack.Protected>
+            <Stack.Protected guard={profile === null}>
+              <Stack.Screen name="onboarding" />
+            </Stack.Protected>
+          </Stack>
+        )}
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -78,6 +78,7 @@ export default function ProgressScreen() {
                   {monthlyGoal.completedCount} / {monthlyGoal.targetCount} workouts
                 </Text>
                 <Text
+                  accessibilityRole="button"
                   className="mt-1 text-sm text-pulse-400"
                   onPress={() => {
                     setTargetInput(String(monthlyGoal.targetCount));
