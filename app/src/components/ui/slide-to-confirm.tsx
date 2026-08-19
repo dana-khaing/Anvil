@@ -61,18 +61,25 @@ export function SlideToConfirm({
     labelOpacity.value = withTiming(1, { duration: 150 });
   }, [translateX, labelOpacity]);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     setCommitting(true);
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    Promise.resolve(onConfirm()).catch(() => {
+    try {
+      // Awaited inside the try so a synchronous throw from onConfirm --
+      // valid per its own `() => void | Promise<void>` signature -- is
+      // caught here too, not just a rejected promise. Promise.resolve(fn())
+      // only catches the latter; calling fn() outside any try/catch let a
+      // synchronous throw escape uncaught and leave `committing` stuck.
+      await onConfirm();
+    } catch {
       // Matches finishExercise's own lack of elaborate error handling --
       // this is a local DB write, not a network call. Just un-stick the
       // control rather than leaving it permanently disabled.
       setCommitting(false);
       resetTrack();
-    });
+    }
   }, [onConfirm, resetTrack]);
 
   const activate = useCallback(() => {

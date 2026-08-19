@@ -30,4 +30,21 @@ describe('SlideToConfirm', () => {
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
+
+  it('recovers instead of getting stuck disabled when onConfirm throws synchronously', async () => {
+    // onConfirm's own type (() => void | Promise<void>) permits a plain
+    // synchronous callback, so a synchronous throw -- not just a rejected
+    // promise -- has to be a real, valid case to handle.
+    const onConfirm = jest.fn(() => {
+      throw new Error('boom');
+    });
+    await render(<SlideToConfirm accessibilityLabel="Mark Squat finished" onConfirm={onConfirm} />);
+
+    await fireEvent(screen.getByLabelText('Mark Squat finished'), 'accessibilityAction', {
+      nativeEvent: { actionName: 'activate' },
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Mark Squat finished').props.accessibilityState.disabled).toBe(false);
+  });
 });
