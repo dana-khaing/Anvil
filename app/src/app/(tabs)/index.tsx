@@ -177,6 +177,7 @@ export default function TodayScreen() {
               </View>
               {displayVideoUrl && (
                 <VideoThumbnail
+                  key={displayVideoUrl}
                   videoUrl={displayVideoUrl}
                   exerciseName={displayName ?? ''}
                   onPress={() => setPlayingVideoUrl(displayVideoUrl)}
