@@ -57,6 +57,13 @@ export function VideoThumbnail({ videoUrl, exerciseName, onPress }: VideoThumbna
   );
 }
 
+// YouTube returns HTTP 200 with a generic grey placeholder -- not an error
+// -- for a hqdefault.jpg request against a deleted/private/invalid video id.
+// Confirmed empirically: a real video's hqdefault.jpg is 480x360; the
+// placeholder is always exactly 120x90, regardless of video id.
+const PLACEHOLDER_WIDTH = 120;
+const PLACEHOLDER_HEIGHT = 90;
+
 function VideoThumbnailImage({ videoId, onError }: { videoId: string; onError: () => void }) {
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +74,13 @@ function VideoThumbnailImage({ videoId, onError }: { videoId: string; onError: (
         style={{ width: '100%', height: '100%' }}
         contentFit="cover"
         transition={150}
-        onLoad={() => setLoading(false)}
+        onLoad={(event) => {
+          if (event.source.width === PLACEHOLDER_WIDTH && event.source.height === PLACEHOLDER_HEIGHT) {
+            onError();
+            return;
+          }
+          setLoading(false);
+        }}
         onError={onError}
       />
       {loading && (
