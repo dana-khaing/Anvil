@@ -912,3 +912,126 @@ exact pattern already proven on four other screens; couldn't get a live
 screenshot of the Chat tab specifically since it isn't the default tab
 and this environment still has no tap automation to navigate to it —
 same standing limitation as the rest of this project.
+
+---
+
+Post-plan work below continues one-feature-per-day backdating on feature
+commits, same convention as Days 1-17, picking up the next calendar day
+after each prior entry. A handful of small direct fixes further down
+carry their genuine real-world merge date instead of a backdated one —
+called out inline — because they were one-line patches merged straight
+to `main` rather than run through a dated feature branch.
+
+## 2025-10-27 — Today screen redesign: real thumbnails, slide-to-finish
+
+User feedback on the live app: the "watch video" button was a small,
+easy-to-miss icon, roughly two-thirds of the Today screen sat empty
+around the centered exercise card, and finishing an exercise was a
+single tap that was too easy to trigger by accident. Addressed with a
+real YouTube thumbnail preview (`VideoThumbnail`) replacing the icon, a
+drag-to-confirm `SlideToConfirm` control replacing the "Finished"
+button, and `GestureHandlerRootView` wired into the root layout — the
+first real gesture control in the app, so this was the one-time setup
+RNGH requires. `SlideToConfirm` ships with an accessibility fallback
+(`accessibilityActions`/`onAccessibilityAction` wired to the same
+confirm path) so a VoiceOver/TalkBack double-tap finishes the exercise
+without needing the drag.
+
+## 2025-11-01 — VoiceOver-semantics audit pass
+
+A dedicated accessibility pass over the app's semantics, distinct from
+Day 16's contrast-focused polish.
+
+## 2025-11-03 — Fill the Today screen's remaining dead space
+
+Follow-up to the Oct 27 redesign: added the "Up next" list of the day's
+remaining exercises below the hero card, and clarified the "Swap" label
+so the freed-up space reads as intentional layout, not a placeholder.
+
+## 2025-11-04 — Per-set logging and a skippable rest timer
+
+Reworked `finishExercise` into `logSet`, moving the workout-session store
+from finishing a whole exercise at once to logging individual sets. Added
+a skippable rest timer between sets and exercises on top of that.
+
+## 2025-11-05 — Muscle-group tagging and rest-conflict tracking
+
+Routine days can now be tagged with one or more muscle groups at
+creation. Built on top of that: 48-hour rest-conflict detection between
+days sharing a muscle group (with streak-exclusion for overridden
+sessions), a manual "choose which day to train" flow, and the schema
+columns both features needed.
+
+## 2025-11-06 — Number field steppers
+
+Added +/- stepper arrows to `NumberField`, the shared weight/reps/sets
+input used throughout the routine builder and session flow.
+
+## 2025-11-09 — Fix: rest-check bypass while loading, duplicate parsing
+
+Two small correctness fixes found together: the 48h rest-conflict check
+could be bypassed while the routines store was still loading, and
+`parseMuscleGroups` was being called more than once per render in one
+spot.
+
+## 2026-08-18 — Fix: SlideToConfirm label/thumb overlap; RestTimer double border
+
+Two direct one-line UI fixes merged on their real date rather than a
+backdated feature day: the slide-to-confirm label and thumb were
+overlapping at small track widths, and `RestTimer` had a doubled
+rounded-corner border from nesting inside another rounded container.
+
+## 2026-08-19 — Rename app from PulseForge to Anvil
+
+The project's public name changed from PulseForge to Anvil across the
+repo, config, and app identifiers. Merged on its real date, not a
+backdated feature day, for the same reason as the two fixes above.
+
+## 2025-11-10 — CI: switch runner from macos-latest to ubuntu-latest
+
+GitHub Actions billing had exhausted the account's spending limit —
+`macos-latest` runners bill Actions minutes at a 10x multiplier versus
+`ubuntu-latest` on a private repo, and nothing in this project's CI
+actually needs macOS (typecheck, lint, unit tests — no native/simulator
+build in the `verify` job). Combined with making the repository public
+(unlimited free Actions minutes, no spending-limit gating at all), this
+unblocked CI entirely.
+
+## 2025-11-11 — Fix: video-thumbnail and slide-to-confirm bugs from code review
+
+A code review pass against the Oct 27 redesign (merged by a separate
+session before this review ran) turned up three real bugs, fixed here:
+
+1. `VideoThumbnail` didn't reset its `failed`/`loading` state when the
+   exercise changed underneath it while the component stayed mounted —
+   fixed by keying the component per exercise (`key={displayVideoUrl}`)
+   at the call site.
+2. YouTube returns HTTP 200 with a generic 120x90 grey placeholder image
+   — not an HTTP error — for a deleted/private/invalid video id's
+   `hqdefault.jpg`. `onError` never fired for this case, so a broken
+   video link silently showed a placeholder instead of falling back to
+   the "Watch video" button. Fixed by checking the loaded image's
+   dimensions against the empirically-confirmed 120x90 placeholder size
+   and treating a match as a load failure.
+3. `SlideToConfirm`'s `handleConfirm` called `onConfirm()` outside any
+   `try`/`catch`, so a *synchronous* throw (valid under its own `() =>
+   void | Promise<void>` signature) escaped uncaught and left the
+   control stuck mid-drag, permanently disabled. Fixed by awaiting
+   `onConfirm()` inside a `try`/`catch` so both a synchronous throw and a
+   rejected promise reset the control the same way.
+
+All three verified with new regression tests (a fake 120x90-dimension
+`expo-image` mock for the thumbnail bug, a synchronously-throwing
+`onConfirm` mock for the slide-to-confirm bug) plus the existing
+typecheck/lint/test suite.
+
+## 2025-11-12 — Remove "D1 - Chest and Tricep" as UI example copy
+
+User-reported: an example day label (`D1 - Chest and Tricep`) I'd used
+while describing UI states during the Oct 27 redesign work had leaked
+into the shipped empty-state text and input placeholder on the Routines
+screen. Neither spot is real seeded content — the actual "Bro Split"
+template (`D1 - Chest and Tricep`, `D2 - Back and Bicep`, ...) in
+`seed-data/templates.ts` is untouched and intentional. Replaced the
+empty-state copy with a generic instruction and the placeholder with
+`"e.g. Push Day"`.

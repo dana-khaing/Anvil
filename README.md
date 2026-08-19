@@ -8,25 +8,38 @@ to the cloud when you're back online.
 
 ## Status
 
-✅ Day 17 of 17 — the planned day-by-day build is complete: routines,
+✅ The planned 17-day build is complete and shipped: routines,
 onboarding, workout sessions with substitution, in-app video, Supabase
 auth + backup/restore sync, streaks/goals/badges, local notifications, a
 Gemini-backed AI coach grounded in your actual routine, progress
 history/charts, and a WCAG-AA accessibility pass, with three refactor
-passes along the way to keep debt from piling up. Honestly still
-missing, not silently dropped: auto-recommended video search (no YouTube
-Data API key yet), a real app icon, a background job to keep the
-notification queue topped up without an app open, and true multi-device
-continuous sync (what's shipped is deliberately backup/restore, not
-conflict-resolving merge). See
-[`DIARY.md`](./DIARY.md) for the full day-by-day log of what was built,
-what was cut, and why.
+passes along the way to keep debt from piling up.
+
+Since then: a Today-screen redesign (real YouTube thumbnail previews, a
+drag-to-confirm "slide to finish" control, an "Up next" list filling the
+screen's previously-empty space), per-set logging with a skippable rest
+timer, muscle-group tagging with 48-hour rest-conflict detection, a
+manual day-choice flow, and a handful of bug fixes turned up by code
+review. See [`DIARY.md`](./DIARY.md) for the full day-by-day log of what
+was built, what was cut, and why.
+
+Honestly still missing, not silently dropped: auto-recommended video
+search (no YouTube Data API key yet), a real app icon, a background job
+to keep the notification queue topped up without an app open, and true
+multi-device continuous sync (what's shipped is deliberately
+backup/restore, not conflict-resolving merge).
 
 ## Features
 
-- Structured routine builder (name, weight, reps, sets, video per exercise)
+- Structured routine builder (name, weight, reps, sets, video per exercise),
+  with optional muscle-group tagging per day and 48-hour rest-conflict
+  detection between days sharing a muscle group
 - Guided onboarding (height/weight/goal → starter routine) or fully manual setup
-- Workout session flow: mark an exercise finished, auto-advance to the next
+- Workout session flow: real YouTube thumbnail previews, per-set logging
+  with a skippable rest timer, an "Up next" list of the day's remaining
+  exercises, and a drag-to-confirm "slide to finish" control (with a
+  VoiceOver/TalkBack double-tap fallback) instead of a single tap
+- Manual day-choice flow when you'd rather pick than follow the schedule
 - Exercise substitution: swap to a bodyweight/dumbbell/free alternative when
   a machine isn't available, with reps/sets adjusted automatically
 - In-app exercise videos, playing inside the app, never redirecting out —
