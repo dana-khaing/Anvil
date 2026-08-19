@@ -41,8 +41,7 @@ export default function RoutinesScreen() {
         {loaded && days.length === 0 && !addingDay && (
           <Card className="mb-4">
             <Text className="mb-3 text-ink-muted">
-              No days yet. Add one to start building your routine, just like &quot;D1 - Chest and
-              Tricep&quot;.
+              No days yet. Add one to start building your routine.
             </Text>
             <Button onPress={() => setAddingDay(true)}>Add your first day</Button>
           </Card>
@@ -93,7 +92,7 @@ export default function RoutinesScreen() {
               autoFocus
               value={newDayLabel}
               onChangeText={setNewDayLabel}
-              placeholder="e.g. D1 - Chest and Tricep"
+              placeholder="e.g. Push Day"
               placeholderTextColor={colors.inkFaint}
               accessibilityLabel="Day name"
               className="rounded-xl border border-border bg-background px-4 py-3 text-base text-ink"
