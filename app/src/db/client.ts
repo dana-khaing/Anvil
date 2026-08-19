@@ -3,6 +3,6 @@ import { openDatabaseSync } from 'expo-sqlite';
 
 import * as schema from './schema';
 
-export const expoDb = openDatabaseSync('pulseforge.db', { enableChangeListener: true });
+export const expoDb = openDatabaseSync('anvil.db', { enableChangeListener: true });
 
 export const db = drizzle(expoDb, { schema });

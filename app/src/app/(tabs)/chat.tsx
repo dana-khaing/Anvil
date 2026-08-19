@@ -56,7 +56,7 @@ export default function ChatScreen() {
           ListEmptyComponent={
             <Text className="mt-8 text-center text-ink-muted">
               Ask about your routine, an exercise, or general training questions. Requires a
-              connection — everything else in PulseForge works offline.
+              connection — everything else in Anvil works offline.
             </Text>
           }
           renderItem={({ item }) => <MessageBubble message={item} />}

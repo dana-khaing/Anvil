@@ -12,7 +12,7 @@ const GEMINI_MODEL = "gemini-3.6-flash";
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const SYSTEM_PROMPT =
-  "You are the in-app AI coach for PulseForge, a workout tracking app. " +
+  "You are the in-app AI coach for Anvil, a workout tracking app. " +
   "Answer questions about the user's routine and general fitness questions. " +
   "Keep answers short and practical -- this is a mobile chat, not an essay. " +
   "The user's profile and current routine are given below as context; " +

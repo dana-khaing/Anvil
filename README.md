@@ -1,4 +1,4 @@
-# PulseForge
+# Anvil
 
 A futuristic, offline-first workout tracker for mobile. Build and follow
 structured training routines, swap exercises when equipment isn't free,
@@ -61,7 +61,7 @@ a hand-rolled backend).
 ## Repository layout
 
 ```
-PulseForge/
+Anvil/
 ├── app/            # Expo (React Native) mobile client
 ├── supabase/       # Postgres migrations + Edge Functions (added when cloud sync lands)
 ├── DIARY.md        # Running build log, one entry per feature/refactor day

@@ -71,7 +71,7 @@ export default function OnboardingScreen() {
         <View className="flex-1 pt-8">
           {step === 'welcome' && (
             <View className="flex-1 justify-center">
-              <Text className="mb-3 text-4xl font-semibold text-ink">Welcome to PulseForge</Text>
+              <Text className="mb-3 text-4xl font-semibold text-ink">Welcome to Anvil</Text>
               <Text className="text-base text-ink-muted">
                 Answer a few questions and we&apos;ll build you a starter routine — or skip
                 straight to building your own.
