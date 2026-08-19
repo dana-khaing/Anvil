@@ -1,33 +1,51 @@
-# Anvil
+<div align="center">
+  <img src="app/assets/images/icon.png" width="96" alt="Anvil" />
+</div>
 
-A futuristic, offline-first workout tracker for mobile. Build and follow
-structured training routines, swap exercises when equipment isn't free,
-watch form videos without leaving the app, chat with an AI coach, and keep a
-Duolingo-style streak going — all fully usable with no connection, syncing
-to the cloud when you're back online.
+<h1 align="center">Anvil</h1>
 
-## Status
+<p align="center">
+  A futuristic, offline-first workout tracker for mobile.
+</p>
 
-✅ The planned 17-day build is complete and shipped: routines,
-onboarding, workout sessions with substitution, in-app video, Supabase
-auth + backup/restore sync, streaks/goals/badges, local notifications, a
-Gemini-backed AI coach grounded in your actual routine, progress
-history/charts, and a WCAG-AA accessibility pass, with three refactor
-passes along the way to keep debt from piling up.
+<p align="center">
+  <img alt="Status: active" src="https://img.shields.io/badge/status-active-1AAE6F?style=flat-square" />
+  <img alt="Platforms: iOS and Android" src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android-3A6EA5?style=flat-square" />
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-8A3B2A?style=flat-square" />
+</p>
 
-Since then: a Today-screen redesign (real YouTube thumbnail previews, a
-drag-to-confirm "slide to finish" control, an "Up next" list filling the
-screen's previously-empty space), per-set logging with a skippable rest
-timer, muscle-group tagging with 48-hour rest-conflict detection, a
-manual day-choice flow, and a handful of bug fixes turned up by code
-review. See [`DIARY.md`](./DIARY.md) for the full day-by-day log of what
-was built, what was cut, and why.
+## What Anvil is
 
-Honestly still missing, not silently dropped: auto-recommended video
-search (no YouTube Data API key yet), a real app icon, a background job
-to keep the notification queue topped up without an app open, and true
-multi-device continuous sync (what's shipped is deliberately
-backup/restore, not conflict-resolving merge).
+Build and follow structured training routines, swap exercises when
+equipment isn't free, watch form videos without leaving the app, chat with
+an AI coach, and keep a Duolingo-style streak going — all fully usable with
+no connection, syncing to the cloud when you're back online.
+
+## Product principles
+
+- **Offline-first, always.** Every core workflow — building a routine,
+  running a session, logging a set — works with no connection. Cloud sync
+  is a convenience layered on top, not a requirement.
+- **Cut scope honestly.** What's missing is named the day it's cut, with
+  the reasoning, in [`DIARY.md`](./DIARY.md) — never silently dropped.
+- **Accessibility is not optional.** A full WCAG-AA contrast pass and a
+  dedicated VoiceOver-semantics audit, not a checkbox.
+- **Verify for real.** No simulator tap automation in this project's build
+  environment forced a discipline of direct SQLite state seeding, real
+  end-to-end checks for anything server-side, and unit tests for every
+  piece of pure logic — evidence over assumption.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    App[Expo mobile client] --> SQLite[(expo-sqlite + Drizzle)]
+    App --> Supabase[Supabase]
+    App --> Notif[Local notifications]
+    Supabase --> Postgres[(Postgres + RLS)]
+    Supabase --> EdgeFn[Edge Function: chat]
+    EdgeFn --> Gemini[Gemini API]
+```
 
 ## Features
 
@@ -73,7 +91,7 @@ a hand-rolled backend).
 
 ## Repository layout
 
-```
+```text
 Anvil/
 ├── app/            # Expo (React Native) mobile client
 ├── supabase/       # Postgres migrations + Edge Functions (added when cloud sync lands)
@@ -93,6 +111,37 @@ pnpm start          # launches Expo for the app/ package
 
 The app needs a custom `expo-dev-client` build — plain Expo Go doesn't work
 once native modules (Skia, `expo-sqlite`, ...) are wired in.
+
+## Delivery model
+
+Work ships as one focused feature branch and pull request per feature.
+Feature commits carry an assigned date reflecting when that feature was
+built; pull request and merge timestamps stay real. See
+[`DIARY.md`](./DIARY.md) for the day-by-day record.
+
+## Status
+
+✅ The planned 17-day build is complete and shipped: routines, onboarding,
+workout sessions with substitution, in-app video, Supabase auth +
+backup/restore sync, streaks/goals/badges, local notifications, a
+Gemini-backed AI coach grounded in your actual routine, progress
+history/charts, and a WCAG-AA accessibility pass, with three refactor
+passes along the way to keep debt from piling up.
+
+Since then: a Today-screen redesign (real YouTube thumbnail previews, a
+drag-to-confirm "slide to finish" control, an "Up next" list filling the
+screen's previously-empty space), per-set logging with a skippable rest
+timer, muscle-group tagging with 48-hour rest-conflict detection, a manual
+day-choice flow, and a handful of bug fixes turned up by code review. See
+[`DIARY.md`](./DIARY.md) for the full day-by-day log of what was built,
+what was cut, and why.
+
+Honestly still missing, not silently dropped: auto-recommended video
+search (no YouTube Data API key yet), a real app icon distinct from the
+default Expo template, a background job to keep the notification queue
+topped up without an app open, and true multi-device continuous sync
+(what's shipped is deliberately backup/restore, not conflict-resolving
+merge).
 
 ## License
 
