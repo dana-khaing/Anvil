@@ -37,7 +37,7 @@ export function buildRoutineContext(
     const exerciseList = day.exercises
       .map((entry) => {
         const weight = entry.targetWeightKg ? `${entry.targetWeightKg}kg` : 'bodyweight';
-        return `${entry.exercise.name} (${weight}, ${entry.targetRepsMin ?? '?'}-${entry.targetRepsMax ?? '?'} reps, ${entry.targetSets} sets)`;
+        return `${entry.exercise.name} (routine exercise id ${entry.id}) (${weight}, ${entry.targetRepsMin ?? '?'}-${entry.targetRepsMax ?? '?'} reps, ${entry.targetSets} sets)`;
       })
       .join('; ');
     lines.push(`${day.label} (day id ${day.id}): ${exerciseList || 'no exercises yet'}`);
