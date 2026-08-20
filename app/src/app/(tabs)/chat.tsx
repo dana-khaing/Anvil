@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { colors } from '@/constants/colors';
-import { buildRoutineContext, type ChatMessage, useChatStore } from '@/stores/chat-store';
+import { buildExerciseCatalogContext, buildRoutineContext, type ChatMessage, useChatStore } from '@/stores/chat-store';
+import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useProfileStore } from '@/stores/profile-store';
 import { useRoutinesStore } from '@/stores/routines-store';
 
@@ -21,6 +22,8 @@ export default function ChatScreen() {
   const activeRoutine = useRoutinesStore((state) => state.activeRoutine);
   const days = useRoutinesStore((state) => state.days);
   const loadRoutines = useRoutinesStore((state) => state.load);
+  const exerciseCatalog = useExerciseLibraryStore((state) => state.exercises);
+  const loadExerciseCatalog = useExerciseLibraryStore((state) => state.load);
 
   const [draft, setDraft] = useState('');
 
@@ -28,10 +31,11 @@ export default function ChatScreen() {
     load();
     loadProfile();
     loadRoutines();
-  }, [load, loadProfile, loadRoutines]);
+    loadExerciseCatalog();
+  }, [load, loadProfile, loadRoutines, loadExerciseCatalog]);
 
   const onSend = () => {
-    const context = buildRoutineContext(profile, activeRoutine, days);
+    const context = `${buildRoutineContext(profile, activeRoutine, days)}\n\n${buildExerciseCatalogContext(exerciseCatalog)}`;
     const content = draft;
     setDraft('');
     send(content, context);

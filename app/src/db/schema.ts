@@ -127,5 +127,8 @@ export const chatMessages = sqliteTable('chat_messages', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   role: text('role', { enum: ['user', 'assistant'] }).notNull(),
   content: text('content').notNull(),
+  /** JSON-encoded AiAction proposed by the coach, if this reply included one. */
+  actionPayload: text('action_payload'),
+  actionStatus: text('action_status', { enum: ['pending', 'confirmed', 'declined', 'failed'] }),
   createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
 });
