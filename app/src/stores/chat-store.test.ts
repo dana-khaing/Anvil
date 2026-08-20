@@ -1,5 +1,5 @@
 import { type DayWithExercises, type Exercise, type Routine } from './routines-store';
-import { buildExerciseCatalogContext, buildRoutineContext } from './chat-store';
+import { buildExerciseCatalogContext, buildRoutineContext, parseActionPayload } from './chat-store';
 import { type Profile } from './profile-store';
 
 jest.mock('@/db/client', () => ({ db: {} }));
@@ -117,5 +117,24 @@ describe('buildExerciseCatalogContext', () => {
 
   it('states plainly when the catalog has not loaded yet', () => {
     expect(buildExerciseCatalogContext([])).toBe('Exercise catalog: unavailable.');
+  });
+});
+
+describe('parseActionPayload', () => {
+  it('returns null for a null payload', () => {
+    expect(parseActionPayload(null)).toBeNull();
+  });
+
+  it('returns null for malformed JSON', () => {
+    expect(parseActionPayload('{not json')).toBeNull();
+  });
+
+  it('returns null when the parsed value has no kind field', () => {
+    expect(parseActionPayload(JSON.stringify({ dayId: 1 }))).toBeNull();
+  });
+
+  it('returns the parsed action when well-formed', () => {
+    const action = { kind: 'delete_day', dayId: 3 };
+    expect(parseActionPayload(JSON.stringify(action))).toEqual(action);
   });
 });

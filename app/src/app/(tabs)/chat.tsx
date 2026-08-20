@@ -4,7 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { colors } from '@/constants/colors';
-import { buildExerciseCatalogContext, buildRoutineContext, type ChatMessage, useChatStore } from '@/stores/chat-store';
+import { describeAction } from '@/stores/chat-actions';
+import {
+  buildExerciseCatalogContext,
+  buildRoutineContext,
+  parseActionPayload,
+  type ChatMessage,
+  useChatStore,
+} from '@/stores/chat-store';
 import { useExerciseLibraryStore } from '@/stores/exercise-library-store';
 import { useProfileStore } from '@/stores/profile-store';
 import { useRoutinesStore } from '@/stores/routines-store';
@@ -87,14 +94,62 @@ export default function ChatScreen() {
   );
 }
 
+const ACTION_STATUS_LABEL: Record<'confirmed' | 'declined' | 'failed', string> = {
+  confirmed: 'Applied.',
+  declined: 'Declined.',
+  failed: 'Failed.',
+};
+
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
+  const confirmAction = useChatStore((state) => state.confirmAction);
+  const declineAction = useChatStore((state) => state.declineAction);
+  const [busy, setBusy] = useState(false);
+
+  // Corrupt/unrecognized payloads fail closed to a plain text bubble rather than a broken card.
+  const action = parseActionPayload(message.actionPayload);
+  const isPending = action !== null && message.actionStatus === 'pending';
+
+  const onConfirm = async () => {
+    setBusy(true);
+    await confirmAction(message.id);
+    setBusy(false);
+  };
+
+  const onDecline = async () => {
+    setBusy(true);
+    await declineAction(message.id);
+    setBusy(false);
+  };
+
   return (
     <View
       accessible
       accessibilityLabel={`${isUser ? 'You' : 'Coach'}: ${message.content}`}
       className={`max-w-[85%] rounded-2xl px-4 py-3 ${isUser ? 'self-end bg-pulse-500' : 'self-start bg-surface-raised'}`}>
       <Text className="text-ink">{message.content}</Text>
+
+      {isPending && (
+        <View className="mt-3 gap-2 border-t border-border pt-3">
+          <Text className="text-sm text-ink-muted">{describeAction(action)}</Text>
+          <View className="flex-row gap-2">
+            <View className="flex-1">
+              <Button variant="secondary" disabled={busy} onPress={onDecline}>
+                Decline
+              </Button>
+            </View>
+            <View className="flex-1">
+              <Button disabled={busy} onPress={onConfirm}>
+                {busy ? '...' : 'Confirm'}
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {action && message.actionStatus && message.actionStatus !== 'pending' && (
+        <Text className="mt-2 text-xs text-ink-faint">{ACTION_STATUS_LABEL[message.actionStatus]}</Text>
+      )}
     </View>
   );
 }
