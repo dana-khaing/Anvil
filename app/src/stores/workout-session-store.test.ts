@@ -17,6 +17,15 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskRegisteredAsync: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('expo-background-task', () => ({
+  registerTaskAsync: jest.fn(),
+  unregisterTaskAsync: jest.fn(),
+  BackgroundTaskResult: { Success: 1, Failed: 2 },
+}));
 
 function makeDay(id: number, label: string, muscleGroups: string[] = []): DayWithExercises {
   return {
