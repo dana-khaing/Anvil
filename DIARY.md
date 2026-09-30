@@ -1177,3 +1177,25 @@ instead of carrying a second version declaration that could drift later.
 This deliberately changes no application behavior. It makes local validation
 and GitHub validation start from the same supported runtime before the SDK 57
 dependency-alignment work begins.
+
+## 2025-12-09 — Align dependencies with Expo SDK 57
+
+Ran Expo's own compatibility check after pinning the supported Node runtime.
+It found 21 packages behind the patch versions expected by the installed SDK,
+including Expo itself, Router, SQLite, Notifications, React Native, Jest Expo,
+and the Expo ESLint preset. Updated that complete set through `expo install`
+rather than choosing versions by hand, registered the config plugins the CLI
+identified, and added the matching Metro/Jest peer packages so pnpm no longer
+resolves older 0.86.2 peers beside React Native 0.86.3.
+
+The production dependency audit initially reported 21 high and 8 moderate
+transitive findings. Same-release-line overrides move the affected XML, YAML,
+and brace-expansion packages to patched versions, leaving zero high findings.
+Two moderate advisories remain in Expo-owned dependency paths: `uuid@7` in the
+native config tooling and `decode-uri-component@0.2` under Router's query-string
+package. Their published fixes require unsupported major-version overrides, so
+they are documented rather than forced into an SDK graph Expo does not test.
+
+Verified the frozen install, Expo compatibility check, typecheck, lint, and all
+125 tests after both the SDK update and the security overrides. The Jest native
+module warning noise is pre-existing test-harness work, not an SDK regression.
