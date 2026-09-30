@@ -1199,3 +1199,18 @@ they are documented rather than forced into an SDK graph Expo does not test.
 Verified the frozen install, Expo compatibility check, typecheck, lint, and all
 125 tests after both the SDK update and the security overrides. The Jest native
 module warning noise is pre-existing test-harness work, not an SDK regression.
+
+## 2025-12-10 — Repair weight chart path construction
+
+The SDK alignment exposed Skia's deprecation path clearly: `SkPath` still
+retains mutable methods for compatibility, but the installed release directs
+new path construction through `Skia.PathBuilder`. The progress chart now maps
+its data to coordinates first, builds the line with `PathBuilder`, and detaches
+one immutable path for rendering. Empty and single-point series still produce
+an empty path, preserving the existing UI behavior.
+
+Moved the chart math into a small pure helper and covered declining, flat, and
+insufficient datasets. This verifies the coordinate bounds without requiring a
+native canvas in Jest. Typecheck and lint also pass; rendering the chart on an
+iOS device remains the manual visual check because the current environment has
+no simulator tap automation.
