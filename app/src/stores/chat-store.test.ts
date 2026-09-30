@@ -1,9 +1,14 @@
 import { type DayWithExercises, type Exercise, type Routine } from './routines-store';
-import { buildExerciseCatalogContext, buildRoutineContext, parseActionPayload } from './chat-store';
+import { db } from '../db/client';
+import { supabase } from '../db/supabase-client';
+import { buildExerciseCatalogContext, buildRoutineContext, parseActionPayload, useChatStore } from './chat-store';
 import { type Profile } from './profile-store';
 
-jest.mock('@/db/client', () => ({ db: {} }));
-jest.mock('@/db/supabase-client', () => ({ supabase: {} }));
+jest.mock('@/db/client', () => ({ db: { insert: jest.fn() } }));
+jest.mock('@/db/supabase-client', () => ({ supabase: { functions: { invoke: jest.fn() } } }));
+
+const mockDb = db as unknown as { insert: jest.Mock };
+const mockInvoke = supabase.functions.invoke as jest.Mock;
 
 const profile: Profile = {
   id: 1,
@@ -136,5 +141,61 @@ describe('parseActionPayload', () => {
   it('returns the parsed action when well-formed', () => {
     const action = { kind: 'delete_day', dayId: 3 };
     expect(parseActionPayload(JSON.stringify(action))).toEqual(action);
+  });
+});
+
+describe('send', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useChatStore.setState({ messages: [], loaded: true, sending: false, error: null });
+  });
+
+  it('blocks a second send while the first message insert is pending', async () => {
+    const userMessage = {
+      id: 1,
+      role: 'user' as const,
+      content: 'How should I progress this week?',
+      actionPayload: null,
+      actionStatus: null,
+      createdAt: '2025-12-11 09:00:00',
+    };
+    const assistantMessage = {
+      id: 2,
+      role: 'assistant' as const,
+      content: 'Add one rep while your form stays consistent.',
+      actionPayload: null,
+      actionStatus: null,
+      createdAt: '2025-12-11 09:00:01',
+    };
+
+    let resolveUserInsert: ((messages: [typeof userMessage]) => void) | undefined;
+    const userInsert = new Promise<[typeof userMessage]>((resolve) => {
+      resolveUserInsert = resolve;
+    });
+
+    mockDb.insert
+      .mockReturnValueOnce({
+        values: jest.fn().mockReturnValue({ returning: jest.fn().mockReturnValue(userInsert) }),
+      })
+      .mockReturnValueOnce({
+        values: jest.fn().mockReturnValue({ returning: jest.fn().mockResolvedValue([assistantMessage]) }),
+      });
+    mockInvoke.mockResolvedValue({ data: { reply: assistantMessage.content, action: null }, error: null });
+
+    const firstSend = useChatStore.getState().send(userMessage.content, 'routine context');
+    const duplicateSend = useChatStore.getState().send(userMessage.content, 'routine context');
+
+    expect(useChatStore.getState().sending).toBe(true);
+    expect(mockDb.insert).toHaveBeenCalledTimes(1);
+
+    resolveUserInsert?.([userMessage]);
+    await Promise.all([firstSend, duplicateSend]);
+
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    expect(useChatStore.getState()).toMatchObject({
+      messages: [userMessage, assistantMessage],
+      sending: false,
+      error: null,
+    });
   });
 });
