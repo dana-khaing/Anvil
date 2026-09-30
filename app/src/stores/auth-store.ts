@@ -14,19 +14,30 @@ type AuthState = {
   signOut: () => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+let initPromise: Promise<void> | null = null;
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   checked: false,
   error: null,
   loading: false,
 
-  init: async () => {
-    const { data } = await supabase.auth.getSession();
-    set({ session: data.session, checked: true });
+  init: () => {
+    if (get().checked) return Promise.resolve();
+    if (initPromise) return initPromise;
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({ session });
+    initPromise = (async () => {
+      const { data } = await supabase.auth.getSession();
+      set({ session: data.session, checked: true });
+
+      supabase.auth.onAuthStateChange((_event, session) => {
+        set({ session });
+      });
+    })().finally(() => {
+      initPromise = null;
     });
+
+    return initPromise;
   },
 
   signUp: async (email, password) => {
