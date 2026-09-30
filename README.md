@@ -101,8 +101,10 @@ Anvil/
 
 ## Local development
 
-Requires Node 20+, [pnpm](https://pnpm.io), and Xcode (iOS Simulator) and/or
-Android Studio (Android emulator).
+Requires Node 20.19.4+, [pnpm](https://pnpm.io), and Xcode (iOS Simulator)
+and/or Android Studio (Android emulator). The repository pins the supported
+Node release in `.nvmrc`; run `nvm use` before installing dependencies or
+running project commands.
 
 ```bash
 pnpm install
