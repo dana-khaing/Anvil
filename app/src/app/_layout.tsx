@@ -1,7 +1,6 @@
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -9,9 +8,7 @@ import '@/global.css';
 
 import { AnimatedSplashOverlay } from '@/components/splash-overlay';
 import { db } from '@/db/client';
-import { seedExerciseLibrary } from '@/db/seed';
-import { useAuthStore } from '@/stores/auth-store';
-import { useNotificationsStore } from '@/stores/notifications-store';
+import { useAppBootstrap } from '@/hooks/use-app-bootstrap';
 import { useProfileStore } from '@/stores/profile-store';
 import migrations from '../../drizzle/migrations';
 
@@ -19,26 +16,8 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
-  const [seeded, setSeeded] = useState(false);
   const profile = useProfileStore((state) => state.profile);
-  const profileChecked = useProfileStore((state) => state.checked);
-  const loadProfile = useProfileStore((state) => state.load);
-  const authChecked = useAuthStore((state) => state.checked);
-  const initAuth = useAuthStore((state) => state.init);
-  const loadNotifications = useNotificationsStore((state) => state.load);
-
-  useEffect(() => {
-    if (!success) return;
-    seedExerciseLibrary(db).then(() => {
-      setSeeded(true);
-      loadProfile();
-    });
-    initAuth();
-    // Best-effort: re-tops the daily-reminder queue if notifications are
-    // already enabled. Not part of the `ready` gate below -- a native
-    // scheduling round-trip shouldn't hold up the rest of the app.
-    loadNotifications();
-  }, [success, loadProfile, initAuth, loadNotifications]);
+  const ready = useAppBootstrap(success);
 
   if (error) {
     return (
@@ -47,8 +26,6 @@ export default function RootLayout() {
       </View>
     );
   }
-
-  const ready = success && seeded && profileChecked && authChecked;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

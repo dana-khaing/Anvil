@@ -1309,3 +1309,19 @@ entries without changing any reachable screen.
 Expo's SDK compatibility check still reports every dependency up to date, and
 the project passes typecheck and lint with no remaining references to the
 component or package.
+
+## 2025-12-17 — Isolate app bootstrap orchestration
+
+The root layout had accumulated migration gating, exercise seeding, profile
+loading, auth initialization, notification refresh, and splash readiness in
+one component beside its navigation tree. Extracted that startup sequence into
+`useAppBootstrap`, leaving the layout responsible for migration errors and
+route rendering while the hook owns post-migration work and the readiness
+result.
+
+This is a behavior-preserving refactor: nothing starts before migrations;
+auth and notification loading remain independent of the local seed; profile
+loading still begins only after seeding; and notification scheduling still
+does not hold the splash screen. Added hook tests for those boundaries and for
+the complete readiness gate. No screens, routes, persistence, or configuration
+changed.
