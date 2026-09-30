@@ -1,9 +1,21 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { create } from 'zustand';
 
 import { db } from '@/db/client';
-import { addExercisesToDay, createDayWithExercises } from '@/db/routines';
+import {
+  addExercisesToDay,
+  addExerciseToDay,
+  createDayWithExercises,
+  createDefaultRoutine,
+  createRoutineDay,
+  deleteRoutineDay,
+  deleteRoutineExercise,
+  type NewExerciseInput,
+  updateRoutineExercise,
+} from '@/db/routines';
 import { exercises, routineDays, routineExercises, routines } from '@/db/schema';
+
+export type { NewExerciseInput } from '@/db/routines';
 
 export type Routine = typeof routines.$inferSelect;
 export type RoutineDay = typeof routineDays.$inferSelect;
@@ -22,15 +34,6 @@ export function parseMuscleGroups(raw: string): string[] {
     return [];
   }
 }
-
-export type NewExerciseInput = {
-  exerciseId: string;
-  targetWeightKg: number | null;
-  targetRepsMin: number | null;
-  targetRepsMax: number | null;
-  targetSets: number;
-  videoUrl: string | null;
-};
 
 type RoutinesState = {
   activeRoutine: Routine | null;
@@ -88,10 +91,7 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
     const existing = get().activeRoutine;
     if (existing) return existing;
 
-    const [created] = await db
-      .insert(routines)
-      .values({ name: 'My Routine', splitType: 'custom', isActive: true })
-      .returning();
+    const created = await createDefaultRoutine();
 
     await get().load();
     return created;
@@ -100,12 +100,7 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   addDay: async (label, muscleGroups) => {
     const routine = await get().ensureActiveRoutine();
     const nextOrder = get().days.length;
-    await db.insert(routineDays).values({
-      routineId: routine.id,
-      label,
-      dayOrder: nextOrder,
-      muscleGroups: JSON.stringify(muscleGroups),
-    });
+    await createRoutineDay(routine.id, label, nextOrder, muscleGroups);
     await get().load();
   },
 
@@ -116,21 +111,13 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   },
 
   deleteDay: async (dayId) => {
-    await db.delete(routineDays).where(eq(routineDays.id, dayId));
+    await deleteRoutineDay(dayId);
     await get().load();
   },
 
   addExercise: async (dayId, input) => {
-    await db.insert(routineExercises).values({
-      routineDayId: dayId,
-      exerciseId: input.exerciseId,
-      orderIndex: get().days.find((day) => day.id === dayId)?.exercises.length ?? 0,
-      targetWeightKg: input.targetWeightKg,
-      targetRepsMin: input.targetRepsMin,
-      targetRepsMax: input.targetRepsMax,
-      targetSets: input.targetSets,
-      videoUrl: input.videoUrl,
-    });
+    const nextOrder = get().days.find((day) => day.id === dayId)?.exercises.length ?? 0;
+    await addExerciseToDay(dayId, nextOrder, input);
     await get().load();
   },
 
@@ -141,15 +128,12 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   },
 
   updateExercise: async (id, input) => {
-    await db
-      .update(routineExercises)
-      .set({ ...input, updatedAt: sql`(current_timestamp)` })
-      .where(eq(routineExercises.id, id));
+    await updateRoutineExercise(id, input);
     await get().load();
   },
 
   deleteExercise: async (id) => {
-    await db.delete(routineExercises).where(eq(routineExercises.id, id));
+    await deleteRoutineExercise(id);
     await get().load();
   },
 }));
