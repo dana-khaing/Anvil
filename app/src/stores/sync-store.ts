@@ -11,12 +11,13 @@ type SyncState = {
   sync: (userId: string) => Promise<void>;
 };
 
-export const useSyncStore = create<SyncState>((set) => ({
+export const useSyncStore = create<SyncState>((set, get) => ({
   status: 'idle',
   lastSyncedAt: null,
   error: null,
 
   sync: async (userId) => {
+    if (get().status === 'syncing') return;
     set({ status: 'syncing', error: null });
     try {
       await syncWithSupabase(userId);

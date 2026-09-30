@@ -1268,3 +1268,16 @@ work finishes.
 The action test now asserts that a multi-exercise proposal reaches the store as
 one resolved list. Single-row update and delete actions remain single SQLite
 statements and therefore already have the required atomic behavior.
+
+## 2025-12-14 — Guard sync against overlapping runs
+
+Automatic sync follows Supabase session changes, and one authentication cycle
+can emit several events close together. The profile screen's disabled manual
+button does not protect that automatic path, so two calls could previously run
+`syncWithSupabase` against the same local tables at the same time. The sync
+store now checks its own `syncing` state before starting another run.
+
+Added a timing regression test that keeps the first sync promise unresolved,
+starts a second request, and verifies the underlying sync function is called
+once. After the first run resolves, the store returns to idle and records its
+completion time as before.
