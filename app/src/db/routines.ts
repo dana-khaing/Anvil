@@ -45,29 +45,63 @@ export async function createRoutineFromTemplate(splitType: SplitType) {
 
 /** Creates a day plus its exercises in one shot -- same FK-safe insert order as createRoutineFromTemplate. */
 export async function createDayWithExercises(
-  routineId: number,
+  existingRoutineId: number | null,
   label: string,
   dayOrder: number,
   muscleGroups: string[],
   exercises: NewExerciseInput[]
 ) {
-  const [day] = await db
-    .insert(routineDays)
-    .values({ routineId, label, dayOrder, muscleGroups: JSON.stringify(muscleGroups) })
-    .returning();
+  return db.transaction((tx) => {
+    const routineId =
+      existingRoutineId ??
+      tx
+        .insert(routines)
+        .values({ name: 'My Routine', splitType: 'custom', isActive: true })
+        .returning({ id: routines.id })
+        .get().id;
+    const day = tx
+      .insert(routineDays)
+      .values({ routineId, label, dayOrder, muscleGroups: JSON.stringify(muscleGroups) })
+      .returning()
+      .get();
 
-  for (const [orderIndex, exercise] of exercises.entries()) {
-    await db.insert(routineExercises).values({
-      routineDayId: day.id,
-      exerciseId: exercise.exerciseId,
-      orderIndex,
-      targetWeightKg: exercise.targetWeightKg,
-      targetRepsMin: exercise.targetRepsMin,
-      targetRepsMax: exercise.targetRepsMax,
-      targetSets: exercise.targetSets,
-      videoUrl: exercise.videoUrl,
-    });
-  }
+    if (exercises.length > 0) {
+      tx.insert(routineExercises)
+        .values(
+          exercises.map((exercise, orderIndex) => ({
+            routineDayId: day.id,
+            exerciseId: exercise.exerciseId,
+            orderIndex,
+            targetWeightKg: exercise.targetWeightKg,
+            targetRepsMin: exercise.targetRepsMin,
+            targetRepsMax: exercise.targetRepsMax,
+            targetSets: exercise.targetSets,
+            videoUrl: exercise.videoUrl,
+          }))
+        )
+        .run();
+    }
 
-  return day;
+    return day;
+  });
+}
+
+/** Appends a group of exercises as one write transaction. */
+export async function addExercisesToDay(dayId: number, startOrder: number, exercises: NewExerciseInput[]) {
+  db.transaction((tx) => {
+    tx.insert(routineExercises)
+      .values(
+        exercises.map((exercise, index) => ({
+          routineDayId: dayId,
+          exerciseId: exercise.exerciseId,
+          orderIndex: startOrder + index,
+          targetWeightKg: exercise.targetWeightKg,
+          targetRepsMin: exercise.targetRepsMin,
+          targetRepsMax: exercise.targetRepsMax,
+          targetSets: exercise.targetSets,
+          videoUrl: exercise.videoUrl,
+        }))
+      )
+      .run();
+  });
 }

@@ -1249,3 +1249,22 @@ Added table-driven coverage for every accepted variant and malformed values,
 plus store tests for restored payloads and invalid live responses. This keeps
 the same rules on both sides of local persistence instead of validating only
 at confirmation time.
+
+## 2025-12-13 — Make AI routine changes atomic
+
+Name resolution was already all-or-nothing, but `add_exercises` still called
+the routines store once per exercise. If a later SQLite write failed, earlier
+inserts stayed committed and each successful insert also reloaded the whole
+routine. The action executor now resolves the complete list and submits one
+bulk store operation, which performs one insert transaction and one reload.
+
+`create_day` had a similar gap across its parent and child rows. It now creates
+an initial custom routine when needed, the day, and every exercise inside one
+synchronous Drizzle transaction. Drizzle's Expo SQLite driver executes these
+queries synchronously within `BEGIN`/`COMMIT` and rolls back when the callback
+throws, so the code avoids an async callback that could commit before awaited
+work finishes.
+
+The action test now asserts that a multi-exercise proposal reaches the store as
+one resolved list. Single-row update and delete actions remain single SQLite
+statements and therefore already have the required atomic behavior.

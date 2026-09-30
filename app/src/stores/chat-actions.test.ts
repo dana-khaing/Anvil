@@ -162,7 +162,7 @@ describe('describeAction', () => {
 function makeRoutinesMock(): RoutinesActions {
   return {
     addDayWithExercises: jest.fn().mockResolvedValue(undefined),
-    addExercise: jest.fn().mockResolvedValue(undefined),
+    addExercises: jest.fn().mockResolvedValue(undefined),
     updateExercise: jest.fn().mockResolvedValue(undefined),
     deleteExercise: jest.fn().mockResolvedValue(undefined),
     deleteDay: jest.fn().mockResolvedValue(undefined),
@@ -202,7 +202,7 @@ describe('executeAction', () => {
     expect(routines.addDayWithExercises).not.toHaveBeenCalled();
   });
 
-  it('loops addExercise for add_exercises', async () => {
+  it('submits add_exercises as one bulk store action', async () => {
     const routines = makeRoutinesMock();
     const action: AiAction = {
       kind: 'add_exercises',
@@ -215,9 +215,10 @@ describe('executeAction', () => {
 
     await executeAction(action, routines, catalog);
 
-    expect(routines.addExercise).toHaveBeenCalledTimes(2);
-    expect(routines.addExercise).toHaveBeenNthCalledWith(1, 7, expect.objectContaining({ exerciseId: 'barbell-bench-press' }));
-    expect(routines.addExercise).toHaveBeenNthCalledWith(2, 7, expect.objectContaining({ exerciseId: 'barbell-back-squat' }));
+    expect(routines.addExercises).toHaveBeenCalledWith(7, [
+      expect.objectContaining({ exerciseId: 'barbell-bench-press' }),
+      expect.objectContaining({ exerciseId: 'barbell-back-squat' }),
+    ]);
   });
 
   it('calls updateExercise/deleteExercise/deleteDay for the remaining kinds', async () => {
