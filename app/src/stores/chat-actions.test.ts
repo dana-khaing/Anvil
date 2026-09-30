@@ -1,4 +1,11 @@
-import { describeAction, executeAction, resolveExerciseName, type AiAction, type RoutinesActions } from './chat-actions';
+import {
+  describeAction,
+  executeAction,
+  parseAiAction,
+  resolveExerciseName,
+  type AiAction,
+  type RoutinesActions,
+} from './chat-actions';
 import { type Exercise } from './routines-store';
 
 const benchPress: Exercise = {
@@ -29,6 +36,63 @@ const squat: Exercise = {
 };
 
 const catalog: Exercise[] = [benchPress, dumbbellBenchPress, squat];
+
+const proposedBenchPress = {
+  exerciseName: 'Barbell Bench Press',
+  targetWeightKg: 60,
+  targetRepsMin: 8,
+  targetRepsMax: 10,
+  targetSets: 3,
+};
+
+describe('parseAiAction', () => {
+  it.each<{ name: string; value: unknown; expected: AiAction }>([
+    {
+      name: 'create_day',
+      value: { kind: 'create_day', label: 'Push Day', muscleGroups: ['chest'], exercises: [proposedBenchPress] },
+      expected: { kind: 'create_day', label: 'Push Day', muscleGroups: ['chest'], exercises: [proposedBenchPress] },
+    },
+    {
+      name: 'add_exercises',
+      value: { kind: 'add_exercises', dayId: 4, exercises: [proposedBenchPress] },
+      expected: { kind: 'add_exercises', dayId: 4, exercises: [proposedBenchPress] },
+    },
+    {
+      name: 'update_exercise',
+      value: { kind: 'update_exercise', routineExerciseId: 7, targetWeightKg: null, targetSets: 4 },
+      expected: { kind: 'update_exercise', routineExerciseId: 7, targetWeightKg: null, targetSets: 4 },
+    },
+    {
+      name: 'delete_exercise',
+      value: { kind: 'delete_exercise', routineExerciseId: 7 },
+      expected: { kind: 'delete_exercise', routineExerciseId: 7 },
+    },
+    {
+      name: 'delete_day',
+      value: { kind: 'delete_day', dayId: 4 },
+      expected: { kind: 'delete_day', dayId: 4 },
+    },
+  ])('accepts a valid $name action', ({ value, expected }) => {
+    expect(parseAiAction(value)).toEqual(expected);
+  });
+
+  it.each([
+    null,
+    { kind: 'unknown_action' },
+    { kind: 'create_day', label: '', muscleGroups: [], exercises: [proposedBenchPress] },
+    { kind: 'create_day', label: 'Push Day', muscleGroups: [], exercises: [] },
+    { kind: 'add_exercises', dayId: -1, exercises: [proposedBenchPress] },
+    { kind: 'add_exercises', dayId: 1, exercises: [{ ...proposedBenchPress, targetSets: 2.5 }] },
+    { kind: 'add_exercises', dayId: 1, exercises: [{ ...proposedBenchPress, targetRepsMin: 10, targetRepsMax: 8 }] },
+    { kind: 'update_exercise', routineExerciseId: 1 },
+    { kind: 'update_exercise', routineExerciseId: 1, targetWeightKg: 'heavy' },
+    { kind: 'update_exercise', routineExerciseId: 1, targetRepsMin: 8.5 },
+    { kind: 'delete_exercise', routineExerciseId: 1.5 },
+    { kind: 'delete_day', dayId: '4' },
+  ])('rejects malformed input %#', (value) => {
+    expect(parseAiAction(value)).toBeNull();
+  });
+});
 
 describe('resolveExerciseName', () => {
   it('matches an exact name, case-insensitively', () => {

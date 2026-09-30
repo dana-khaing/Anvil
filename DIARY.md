@@ -1228,3 +1228,24 @@ calls `send()` again, and verifies only one insert and one edge-function invoke
 occur. This covers the timing condition directly instead of relying on button
 disablement in the screen, which happens only after React observes the store
 update.
+
+## 2025-12-12 — Validate AI actions at the client boundary
+
+The edge function already maps Gemini tool calls into a closed action union,
+but the client treated both the network response and persisted JSON as trusted
+after checking only for a string `kind`. Added one runtime parser for all five
+actions and now run every incoming or restored proposal through it before the
+confirmation UI can display or execute the change.
+
+Validation covers positive integer database ids and set counts, finite
+nonnegative weights, whole-number rep targets, ordered rep ranges, nonempty
+exercise lists, and the required fields for each action kind. The parser
+returns a newly constructed action, so unrelated response fields do not enter
+the persisted payload. A valid coach reply still appears if an accompanying
+action is malformed; a function-call-only response with no valid action fails
+closed through the existing connection-error state.
+
+Added table-driven coverage for every accepted variant and malformed values,
+plus store tests for restored payloads and invalid live responses. This keeps
+the same rules on both sides of local persistence instead of validating only
+at confirmation time.
